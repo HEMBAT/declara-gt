@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #FAF8F4; font-family: 'Inter', system-ui, sans-serif; color: #0A0A0A; -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B4F; }
+    a:hover { color: #084534; }
+    input, select, textarea, button { font-family: inherit; }
+    ::selection { background: #0E6B4F; color: #FAF8F4; }
+    @keyframes dgt-spin { to { transform: rotate(360deg); } }
+    @keyframes dgt-fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column;">
+
+  <sc-if value="{{ loaded }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; flex-direction:column; min-height:100vh;">
+
+      <!-- Banner de privacidad -->
+      <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#0E6B4F; color:#FAF8F4; padding:8px 20px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:12.5px; line-height:1.4; text-align:center; flex-wrap:wrap;">
+          <span style="width:6px; height:6px; border-radius:50%; background:#FAF8F4; flex:none; opacity:.85;"></span>
+          <span>Tus datos se guardan solo en este equipo — nunca se suben a un servidor.</span>
+          <button onClick="{{ dismissBanner }}" style="background:none; border:none; color:#FAF8F4; opacity:.7; cursor:pointer; font-size:13px; padding:0 2px; margin-left:6px;" style-hover="opacity:1;">✕</button>
+        </div>
+      </sc-if>
+
+      <!-- Topbar -->
+      <div style="background:#084534; color:#FAF8F4; display:flex; align-items:center; gap:24px; padding:14px 24px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:9px; flex:none;">
+          <div style="position:relative; width:26px; height:26px; border-radius:8px; background:#0E6B4F; flex:none; display:flex; align-items:center; justify-content:center;">
+            <div style="width:11px; height:11px; background:#FAF8F4; transform:rotate(45deg); border-radius:2px;"></div>
+          </div>
+          <div style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px; letter-spacing:-0.01em;">declara<span style="opacity:.55; font-weight:500;">·gt</span></div>
+        </div>
+
+        <div style="display:flex; gap:2px; flex-wrap:wrap; flex:1; min-width:200px;">
+          <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="5">
+            <button onClick="{{ item.go }}" style="background:{{ item.bg }}; color:#FAF8F4; border:none; border-radius:8px; padding:8px 14px; font-size:13.5px; font-weight:500; cursor:pointer; opacity:{{ item.opacity }}; white-space:nowrap;" style-hover="opacity:1;">{{ item.label }}</button>
+          </sc-for>
+        </div>
+
+        <div style="flex:none; display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:12px; background:rgba(255,255,255,0.08); padding:6px 12px; border-radius:20px;">
+          <span style="width:6px; height:6px; border-radius:50%; background:{{ statusDotColor }};"></span>
+          {{ periodTopbarLabel }}
+        </div>
+      </div>
+
+      <!-- Contenido -->
+      <div style="flex:1; width:100%; max-width:1180px; margin:0 auto; padding:28px 24px 48px; display:flex; flex-direction:column; gap:0; min-width:0;">
+
+        <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Dashboard">
+
+            <sc-if value="{{ hasSelectedPeriod }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:22px;">
+                <div>
+                  <div style="font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:rgba(10,10,10,0.5); margin-bottom:6px; font-weight:600;">Período</div>
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <select onChange="{{ onPeriodSelect }}" value="{{ periodSelectValue }}" style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:#0A0A0A; background:transparent; border:none; border-bottom:2px solid #0E6B4F; padding:2px 4px 4px 0; cursor:pointer; appearance:none;">
+                      <sc-for list="{{ periodOptions }}" as="opt" hint-placeholder-count="5">
+                        <option value="{{ opt.value }}">{{ opt.label }}</option>
+                      </sc-for>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <div style="font-size:12.5px; padding:6px 12px; border-radius:20px; font-weight:600; background:{{ statusBadge.bg }}; color:{{ statusBadge.color }}; border:{{ statusBadge.border }};">{{ statusBadge.label }}</div>
+                  <sc-if value="{{ canMarkCalculado }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ markCalculado }}" style="background:#0A0A0A; color:#FAF8F4; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;" style-hover="opacity:.85;">Marcar como calculado</button>
+                  </sc-if>
+                  <sc-if value="{{ canMarkDeclarado }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ markDeclarado }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;" style-hover="background:#084534;">Marcar como declarado</button>
+                  </sc-if>
+                </div>
+              </div>
+
+              <sc-if value="{{ periodHasInvoices }}" hint-placeholder-val="{{ true }}">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:14px;">
+                  <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:12px; padding:18px 20px;">
+                    <div style="font-size:12.5px; color:rgba(10,10,10,0.55); margin-bottom:8px; font-weight:500;">Total facturado</div>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600;">{{ fmt.totalFacturado }}</div>
+                    <div style="font-size:12px; color:rgba(10,10,10,0.45); margin-top:4px;">{{ totals.cantidadFacturas }} facturas activas</div>
+                  </div>
+                  <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:12px; padding:18px 20px;">
+                    <div style="font-size:12.5px; color:rgba(10,10,10,0.55); margin-bottom:8px; font-weight:500;">Total sin IVA</div>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600;">{{ fmt.baseSinIva }}</div>
+                    <div style="font-size:12px; color:rgba(10,10,10,0.45); margin-top:4px;">IVA: {{ fmt.totalIva }}</div>
+                  </div>
+                  <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:12px; padding:18px 20px;">
+                    <div style="font-size:12.5px; color:rgba(10,10,10,0.55); margin-bottom:10px; font-weight:500;">ISR calculado — tramos</div>
+                    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px;">
+                      <span style="color:rgba(10,10,10,0.6);">5% hasta Q30,000</span>
+                      <span style="font-family:'JetBrains Mono',monospace;">{{ fmt.tramo1Monto }}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:9px;">
+                      <span style="color:rgba(10,10,10,0.6);">7% excedente</span>
+                      <span style="font-family:'JetBrains Mono',monospace;">{{ fmt.tramo2Monto }}</span>
+                    </div>
+                    <div style="border-top:1px solid rgba(10,10,10,0.08); padding-top:8px; display:flex; justify-content:space-between; font-size:14px; font-weight:600;">
+                      <span>Impuesto</span>
+                      <span style="font-family:'JetBrains Mono',monospace;">{{ fmt.isrTotal }}</span>
+                    </div>
+                  </div>
+                  <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:12px; padding:18px 20px;">
+                    <div style="font-size:12.5px; color:rgba(10,10,10,0.55); margin-bottom:8px; font-weight:500;">Retenciones acreditadas</div>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600;">{{ fmt.retenciones }}</div>
+                    <div style="font-size:12px; color:rgba(10,10,10,0.45); margin-top:4px;">{{ totals.cantRetenciones }} constancias</div>
+                  </div>
+                </div>
+
+                <div style="background:#084534; border-radius:14px; padding:26px 28px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px;">
+                  <div>
+                    <div style="font-size:13px; color:rgba(250,248,244,0.7); margin-bottom:6px; font-weight:500;">Monto final a pagar</div>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:40px; font-weight:700; color:{{ montoFinalColor }}; line-height:1;">{{ fmt.montoFinal }}</div>
+                  </div>
+                  <div style="font-size:12.5px; color:rgba(250,248,244,0.65); max-width:280px; text-align:right;">{{ montoFinalNota }}</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ periodEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#fff; border:1px dashed rgba(10,10,10,0.15); border-radius:14px; padding:48px 32px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px;">
+                  <div style="width:52px; height:52px; border-radius:50%; background:rgba(14,107,79,0.08); display:flex; align-items:center; justify-content:center;">
+                    <div style="width:18px; height:18px; border:2.5px solid #0E6B4F; border-radius:4px;"></div>
+                  </div>
+                  <div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700;">Sin facturas para {{ periodTitleLabel }}</div>
+                  <div style="font-size:13.5px; color:rgba(10,10,10,0.55); max-width:360px; line-height:1.5;">Aún no se ha importado el archivo de facturación del SAT para este período.</div>
+                  <button onClick="{{ goImportar }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:11px 20px; font-size:13.5px; font-weight:600; cursor:pointer; margin-top:6px;" style-hover="background:#084534;">Importar facturas</button>
+                </div>
+              </sc-if>
+            </sc-if>
+
+            <sc-if value="{{ noPeriodSelected }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:16px; padding:64px 32px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px; margin-top:12px;">
+                <div style="width:56px; height:56px; border-radius:14px; background:#0E6B4F; display:flex; align-items:center; justify-content:center;">
+                  <div style="width:20px; height:20px; background:#FAF8F4; transform:rotate(45deg); border-radius:3px;"></div>
+                </div>
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700;">Bienvenido a declara·gt</div>
+                <div style="font-size:14px; color:rgba(10,10,10,0.6); max-width:420px; line-height:1.6;">Es tu primera vez aquí. Importa el archivo de facturación electrónica que exporta el SAT y calculamos tu ISR Opcional Simplificado del mes automáticamente — todo en este equipo.</div>
+                <button onClick="{{ goImportar }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:12px 22px; font-size:14px; font-weight:600; cursor:pointer; margin-top:4px;" style-hover="background:#084534;">Importar mi primer archivo</button>
+                <a href="#" onClick="{{ backToLatestPeriod }}" style="font-size:12.5px; color:rgba(10,10,10,0.45); text-decoration:underline; margin-top:2px;">Volver a un período existente</a>
+              </div>
+            </sc-if>
+
+            <div style="margin-top:10px;">
+              <a href="#" onClick="{{ viewOnboarding }}" style="font-size:12px; color:rgba(10,10,10,0.4); text-decoration:none; border-bottom:1px dotted rgba(10,10,10,0.3);">Ver pantalla de bienvenida (primer uso) →</a>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- IMPORTACIÓN -->
+        <sc-if value="{{ isImportar }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Importación">
+            <div style="margin-bottom:22px;">
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; margin-bottom:6px;">Importación</div>
+              <div style="font-size:13.5px; color:rgba(10,10,10,0.55);">Trae el archivo de facturación electrónica que exporta la Agencia Virtual del SAT.</div>
+            </div>
+
+            <sc-if value="{{ importStepIsIdle }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ startImport }}" style="background:#fff; border:2px dashed rgba(14,107,79,0.35); border-radius:16px; padding:64px 32px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:14px;" style-hover="border-color:#0E6B4F; background:rgba(14,107,79,0.03);">
+                <div style="width:52px; height:52px; border-radius:14px; background:rgba(14,107,79,0.1); display:flex; align-items:center; justify-content:center;">
+                  <div style="width:20px; height:26px; border:2.5px solid #0E6B4F; border-radius:3px; position:relative;"></div>
+                </div>
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:700;">Arrastra tu archivo .xlsx aquí</div>
+                <div style="font-size:13px; color:rgba(10,10,10,0.5); max-width:360px;">o haz clic para elegir el archivo exportado desde la Agencia Virtual SAT</div>
+                <div style="font-size:12px; color:rgba(10,10,10,0.4); margin-top:6px; font-family:'JetBrains Mono',monospace;">.xlsx · .xls</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ importStepIsPreview }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:14px; padding:22px 24px; animation:dgt-fadein .25s ease;">
+                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px;">
+                  <div style="font-size:14.5px; font-weight:600;">{{ previewCount }} facturas detectadas para {{ importedPeriodLabel }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:14.5px; font-weight:600;">{{ previewSummary }}</div>
+                </div>
+                <div style="overflow-x:auto;">
+                  <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:520px;">
+                    <thead>
+                      <tr style="text-align:left; color:rgba(10,10,10,0.5); font-size:11.5px; text-transform:uppercase; letter-spacing:.04em;">
+                        <th style="padding:8px 10px; font-weight:600;">Fecha</th>
+                        <th style="padding:8px 10px; font-weight:600;">Cliente</th>
+                        <th style="padding:8px 10px; font-weight:600;">Tipo DTE</th>
+                        <th style="padding:8px 10px; font-weight:600; text-align:right;">Monto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <sc-for list="{{ previewRows }}" as="row" hint-placeholder-count="4">
+                        <tr style="border-top:1px solid rgba(10,10,10,0.06);">
+                          <td style="padding:10px; font-family:'JetBrains Mono',monospace; white-space:nowrap;">{{ row.fecha }}</td>
+                          <td style="padding:10px;">
+                            {{ row.cliente }}
+                            <sc-if value="{{ row.unclassified }}" hint-placeholder-val="{{ false }}">
+                              <span style="margin-left:8px; font-size:10.5px; padding:2px 7px; border-radius:10px; background:rgba(200,53,79,0.1); color:#C8354F; font-weight:600;">cliente nuevo</span>
+                            </sc-if>
+                          </td>
+                          <td style="padding:10px; font-family:'JetBrains Mono',monospace;">{{ row.tipoDte }}</td>
+                          <td style="padding:10px; font-family:'JetBrains Mono',monospace; text-align:right;">{{ row.monto }}</td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+                  <button onClick="{{ resetImport }}" style="background:transparent; color:rgba(10,10,10,0.6); border:1px solid rgba(10,10,10,0.15); border-radius:8px; padding:10px 18px; font-size:13.5px; font-weight:600; cursor:pointer;">Cancelar</button>
+                  <button onClick="{{ proceedFromPreview }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:10px 18px; font-size:13.5px; font-weight:600; cursor:pointer;" style-hover="background:#084534;">Continuar</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ importStepIsClassify }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:14px; padding:22px 24px; animation:dgt-fadein .25s ease;">
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">Clientes nuevos por clasificar</div>
+                <div style="font-size:13px; color:rgba(10,10,10,0.55); margin-bottom:18px;">{{ importedNewClientsCount }} NIT no reconocidos. Asigna un tipo para calcular el ISR correctamente.</div>
+                <sc-for list="{{ classifyList }}" as="c" hint-placeholder-count="2">
+                  <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; border-top:1px solid rgba(10,10,10,0.06);">
+                    <div>
+                      <div style="font-size:13.5px; font-weight:600;">{{ c.nombre }}</div>
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:rgba(10,10,10,0.5);">{{ c.nit }}</div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                      <sc-for list="{{ c.options }}" as="opt" hint-placeholder-count="3">
+                        <button onClick="{{ opt.pick }}" style="background:{{ opt.bg }}; color:{{ opt.color }}; border:1px solid rgba(14,107,79,0.3); border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer;">{{ opt.label }}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px;">
+                  <button onClick="{{ resetImport }}" style="background:transparent; color:rgba(10,10,10,0.6); border:1px solid rgba(10,10,10,0.15); border-radius:8px; padding:10px 18px; font-size:13.5px; font-weight:600; cursor:pointer;">Cancelar</button>
+                  <button onClick="{{ finishImport }}" disabled="{{ finishDisabled }}" style="background:{{ finishBg }}; color:#FAF8F4; border:none; border-radius:8px; padding:10px 18px; font-size:13.5px; font-weight:600; cursor:{{ finishCursor }};">Guardar y finalizar importación</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ importStepIsDone }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:14px; padding:48px 32px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px; animation:dgt-fadein .25s ease;">
+                <div style="width:52px; height:52px; border-radius:50%; background:#0E6B4F; display:flex; align-items:center; justify-content:center; position:relative;">
+                  <div style="width:18px; height:9px; border-left:3px solid #FAF8F4; border-bottom:3px solid #FAF8F4; transform:rotate(-45deg); margin-top:-3px;"></div>
+                </div>
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700;">{{ previewCount }} facturas importadas a {{ importedPeriodLabel }}</div>
+                <div style="font-size:13.5px; color:rgba(10,10,10,0.55);">{{ importedNewClientsCount }} clientes nuevos agregados a tu directorio.</div>
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                  <button onClick="{{ resetImport }}" style="background:transparent; color:rgba(10,10,10,0.6); border:1px solid rgba(10,10,10,0.15); border-radius:8px; padding:10px 18px; font-size:13.5px; font-weight:600; cursor:pointer;">Importar otro archivo</button>
+                  <button onClick="{{ goToImportedFacturas }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:10px 18px; font-size:13.5px; font-weight:600; cursor:pointer;" style-hover="background:#084534;">Ver facturas importadas</button>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- FACTURAS -->
+        <sc-if value="{{ isFacturas }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Facturas">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; margin-bottom:20px;">
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700;">Facturas del período</div>
+              <select onChange="{{ onPeriodSelect }}" value="{{ periodSelectValueFacturas }}" style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:#0A0A0A; background:#fff; border:1px solid rgba(10,10,10,0.15); border-radius:8px; padding:8px 12px; cursor:pointer;">
+                <sc-for list="{{ periodOptions }}" as="opt" hint-placeholder-count="5">
+                  <option value="{{ opt.value }}">{{ opt.label }}</option>
+                </sc-for>
+              </select>
+            </div>
+
+            <sc-if value="{{ noPeriodSelected }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px dashed rgba(10,10,10,0.15); border-radius:14px; padding:48px 32px; text-align:center; color:rgba(10,10,10,0.55); font-size:13.5px;">Selecciona un período para ver sus facturas.</div>
+            </sc-if>
+
+            <sc-if value="{{ periodEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px dashed rgba(10,10,10,0.15); border-radius:14px; padding:48px 32px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:12px;">
+                <div style="font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:700;">Sin facturas para {{ periodTitleLabel }}</div>
+                <div style="font-size:13.5px; color:rgba(10,10,10,0.55); max-width:340px;">Importa el archivo del SAT para este período.</div>
+                <button onClick="{{ goImportar }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:10px 18px; font-size:13.5px; font-weight:600; cursor:pointer; margin-top:4px;" style-hover="background:#084534;">Importar facturas</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ facturasHasRows }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:14px; overflow:hidden;">
+                <div style="overflow-x:auto;">
+                  <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:760px;">
+                    <thead>
+                      <tr style="text-align:left; color:rgba(10,10,10,0.5); font-size:11px; text-transform:uppercase; letter-spacing:.04em; background:rgba(10,10,10,0.02);">
+                        <th style="padding:12px 14px; font-weight:600;">Fecha</th>
+                        <th style="padding:12px 14px; font-weight:600;">Cliente</th>
+                        <th style="padding:12px 14px; font-weight:600;">DTE</th>
+                        <th style="padding:12px 14px; font-weight:600;">Tipo</th>
+                        <th style="padding:12px 14px; font-weight:600; text-align:right;">Monto</th>
+                        <th style="padding:12px 14px; font-weight:600; text-align:right;">IVA</th>
+                        <th style="padding:12px 14px; font-weight:600; text-align:right;">Base sin IVA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <sc-for list="{{ facturaRows }}" as="row" hint-placeholder-count="6">
+                        <tr style="border-top:1px solid rgba(10,10,10,0.06); opacity:{{ row.rowOpacity }};">
+                          <td style="padding:11px 14px; font-family:'JetBrains Mono',monospace; white-space:nowrap; text-decoration:{{ row.rowDecoration }};">{{ row.fecha }}</td>
+                          <td style="padding:11px 14px; text-decoration:{{ row.rowDecoration }};">
+                            <div>{{ row.clienteNombre }}</div>
+                            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(10,10,10,0.45);">{{ row.clienteNit }}</div>
+                          </td>
+                          <td style="padding:11px 14px; font-family:'JetBrains Mono',monospace; text-decoration:{{ row.rowDecoration }};">{{ row.tipoDte }}</td>
+                          <td style="padding:11px 14px; text-decoration:{{ row.rowDecoration }};">{{ row.tipoLabel }}</td>
+                          <td style="padding:11px 14px; font-family:'JetBrains Mono',monospace; text-align:right; color:{{ row.amountColor }}; text-decoration:{{ row.rowDecoration }};">{{ row.monto }}</td>
+                          <td style="padding:11px 14px; font-family:'JetBrains Mono',monospace; text-align:right; color:{{ row.amountColor }}; text-decoration:{{ row.rowDecoration }};">{{ row.iva }}</td>
+                          <td style="padding:11px 14px; font-family:'JetBrains Mono',monospace; text-align:right; color:{{ row.amountColor }}; text-decoration:{{ row.rowDecoration }};">{{ row.base }}</td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- CLIENTES -->
+        <sc-if value="{{ isClientes }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Clientes">
+            <div style="margin-bottom:20px;">
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; margin-bottom:6px;">Clientes</div>
+              <div style="font-size:13.5px; color:rgba(10,10,10,0.55);">NIT, nombre y tipo por defecto. Se usan al clasificar facturas nuevas durante la importación.</div>
+            </div>
+
+            <sc-if value="{{ hasClientes }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:14px; overflow:hidden;">
+                <div style="overflow-x:auto;">
+                  <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:520px;">
+                    <thead>
+                      <tr style="text-align:left; color:rgba(10,10,10,0.5); font-size:11px; text-transform:uppercase; letter-spacing:.04em; background:rgba(10,10,10,0.02);">
+                        <th style="padding:12px 14px; font-weight:600; width:140px;">NIT</th>
+                        <th style="padding:12px 14px; font-weight:600;">Nombre</th>
+                        <th style="padding:12px 14px; font-weight:600; width:160px;">Tipo por defecto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <sc-for list="{{ clienteRows }}" as="c" hint-placeholder-count="6">
+                        <tr style="border-top:1px solid rgba(10,10,10,0.06);">
+                          <td style="padding:9px 14px; font-family:'JetBrains Mono',monospace; color:rgba(10,10,10,0.7);">{{ c.nit }}</td>
+                          <td style="padding:9px 14px;">
+                            <input value="{{ c.nombre }}" onChange="{{ c.onNombreChange }}" style="width:100%; border:1px solid transparent; background:transparent; font-size:13px; padding:6px 8px; border-radius:6px; font-family:'Inter',sans-serif;" style-hover="border-color:rgba(10,10,10,0.12);" style-focus="border-color:#0E6B4F; background:#fff; outline:none;" />
+                          </td>
+                          <td style="padding:9px 14px;">
+                            <select value="{{ c.tipo }}" onChange="{{ c.onTipoChange }}" style="width:100%; border:1px solid rgba(10,10,10,0.12); background:#fff; font-size:12.5px; padding:6px 8px; border-radius:6px; cursor:pointer;">
+                              <sc-for list="{{ tipoOptions }}" as="opt" hint-placeholder-count="3">
+                                <option value="{{ opt.value }}">{{ opt.label }}</option>
+                              </sc-for>
+                            </select>
+                          </td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ noClientes }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px dashed rgba(10,10,10,0.15); border-radius:14px; padding:48px 32px; text-align:center; color:rgba(10,10,10,0.55); font-size:13.5px;">Aún no tienes clientes registrados. Se agregan automáticamente al importar facturas nuevas.</div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- PARÁMETROS -->
+        <sc-if value="{{ isParametros }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Parámetros">
+            <div style="margin-bottom:20px;">
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; margin-bottom:6px;">Parámetros</div>
+              <div style="font-size:13.5px; color:rgba(10,10,10,0.55);">Tasas vigentes usadas en el cálculo. Solo lectura — agrega una nueva vigencia si la ley cambia.</div>
+            </div>
+
+            <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:14px; padding:20px 22px; margin-bottom:18px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="font-size:14.5px; font-weight:700;">IVA</div>
+                <button onClick="{{ toggleAddIva }}" style="background:transparent; color:#0E6B4F; border:1px solid rgba(14,107,79,0.3); border-radius:8px; padding:7px 13px; font-size:12.5px; font-weight:600; cursor:pointer;">+ Agregar nueva vigencia</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:480px;">
+                  <thead>
+                    <tr style="text-align:left; color:rgba(10,10,10,0.45); font-size:11px; text-transform:uppercase; letter-spacing:.04em;">
+                      <th style="padding:8px 10px; font-weight:600;">Tasa</th>
+                      <th style="padding:8px 10px; font-weight:600;">Vigente desde</th>
+                      <th style="padding:8px 10px; font-weight:600;">Vigente hasta</th>
+                      <th style="padding:8px 10px; font-weight:600;">Nota</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ ivaRows }}" as="r" hint-placeholder-count="1">
+                      <tr style="border-top:1px solid rgba(10,10,10,0.06);">
+                        <td style="padding:10px; font-family:'JetBrains Mono',monospace; font-weight:600;">{{ r.tasa }}</td>
+                        <td style="padding:10px; font-family:'JetBrains Mono',monospace;">{{ r.vigenteDesde }}</td>
+                        <td style="padding:10px; font-family:'JetBrains Mono',monospace;">{{ r.vigenteHasta }}</td>
+                        <td style="padding:10px; color:rgba(10,10,10,0.55); font-size:12.5px;">{{ r.nota }}</td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+
+              <sc-if value="{{ addingIva }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:16px; padding:16px; background:rgba(14,107,79,0.04); border-radius:10px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+                  <div>
+                    <div style="font-size:11.5px; color:rgba(10,10,10,0.55); margin-bottom:5px;">Tasa (%)</div>
+                    <input type="number" value="{{ newVigencia.tasa }}" onChange="{{ setNVTasa }}" style="width:90px; border:1px solid rgba(10,10,10,0.15); border-radius:6px; padding:8px 10px; font-family:'JetBrains Mono',monospace; font-size:13px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11.5px; color:rgba(10,10,10,0.55); margin-bottom:5px;">Vigente desde</div>
+                    <input type="date" value="{{ newVigencia.vigenteDesde }}" onChange="{{ setNVDesde }}" style="border:1px solid rgba(10,10,10,0.15); border-radius:6px; padding:8px 10px; font-family:'JetBrains Mono',monospace; font-size:13px;" />
+                  </div>
+                  <button onClick="{{ submitIva }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;">Guardar</button>
+                  <button onClick="{{ toggleAddIva }}" style="background:transparent; color:rgba(10,10,10,0.5); border:none; padding:9px 4px; font-size:13px; cursor:pointer;">Cancelar</button>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="background:#fff; border:1px solid rgba(10,10,10,0.08); border-radius:14px; padding:20px 22px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="font-size:14.5px; font-weight:700;">ISR Opcional Simplificado — tramos mensuales</div>
+                <button onClick="{{ toggleAddIsr }}" style="background:transparent; color:#0E6B4F; border:1px solid rgba(14,107,79,0.3); border-radius:8px; padding:7px 13px; font-size:12.5px; font-weight:600; cursor:pointer;">+ Agregar nueva vigencia</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:560px;">
+                  <thead>
+                    <tr style="text-align:left; color:rgba(10,10,10,0.45); font-size:11px; text-transform:uppercase; letter-spacing:.04em;">
+                      <th style="padding:8px 10px; font-weight:600;">Tramos</th>
+                      <th style="padding:8px 10px; font-weight:600;">Vigente desde</th>
+                      <th style="padding:8px 10px; font-weight:600;">Vigente hasta</th>
+                      <th style="padding:8px 10px; font-weight:600;">Nota</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ isrRows }}" as="r" hint-placeholder-count="1">
+                      <tr style="border-top:1px solid rgba(10,10,10,0.06);">
+                        <td style="padding:10px; font-family:'JetBrains Mono',monospace; font-weight:600; white-space:nowrap;">{{ r.tramos }}</td>
+                        <td style="padding:10px; font-family:'JetBrains Mono',monospace;">{{ r.vigenteDesde }}</td>
+                        <td style="padding:10px; font-family:'JetBrains Mono',monospace;">{{ r.vigenteHasta }}</td>
+                        <td style="padding:10px; color:rgba(10,10,10,0.55); font-size:12.5px;">{{ r.nota }}</td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+
+              <sc-if value="{{ addingIsr }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:16px; padding:16px; background:rgba(14,107,79,0.04); border-radius:10px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+                  <div>
+                    <div style="font-size:11.5px; color:rgba(10,10,10,0.55); margin-bottom:5px;">Tramo 1 (%)</div>
+                    <input type="number" value="{{ newVigencia.tramo1Tasa }}" onChange="{{ setNVT1Tasa }}" style="width:80px; border:1px solid rgba(10,10,10,0.15); border-radius:6px; padding:8px 10px; font-family:'JetBrains Mono',monospace; font-size:13px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11.5px; color:rgba(10,10,10,0.55); margin-bottom:5px;">Límite tramo 1 (Q)</div>
+                    <input type="number" value="{{ newVigencia.tramo1Limite }}" onChange="{{ setNVLimite }}" style="width:110px; border:1px solid rgba(10,10,10,0.15); border-radius:6px; padding:8px 10px; font-family:'JetBrains Mono',monospace; font-size:13px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11.5px; color:rgba(10,10,10,0.55); margin-bottom:5px;">Tramo 2 (%)</div>
+                    <input type="number" value="{{ newVigencia.tramo2Tasa }}" onChange="{{ setNVT2Tasa }}" style="width:80px; border:1px solid rgba(10,10,10,0.15); border-radius:6px; padding:8px 10px; font-family:'JetBrains Mono',monospace; font-size:13px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11.5px; color:rgba(10,10,10,0.55); margin-bottom:5px;">Vigente desde</div>
+                    <input type="date" value="{{ newVigencia.vigenteDesde }}" onChange="{{ setNVDesde }}" style="border:1px solid rgba(10,10,10,0.15); border-radius:6px; padding:8px 10px; font-family:'JetBrains Mono',monospace; font-size:13px;" />
+                  </div>
+                  <button onClick="{{ submitIsr }}" style="background:#0E6B4F; color:#FAF8F4; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;">Guardar</button>
+                  <button onClick="{{ toggleAddIsr }}" style="background:transparent; color:rgba(10,10,10,0.5); border:none; padding:9px 4px; font-size:13px; cursor:pointer;">Cancelar</button>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top:1px solid rgba(10,10,10,0.08); padding:22px 24px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color:rgba(10,10,10,0.5); max-width:1180px; margin:0 auto; width:100%;">
+        <div style="max-width:560px; line-height:1.5;">Herramienta de apoyo — no constituye asesoría fiscal, verifica con tu contador.</div>
+        <div>Un proyecto libre de <a href="https://github.com/HEMBAT/declara-gt" target="_blank" rel="noopener" style="color:#0E6B4F; text-decoration:none; font-weight:600;">HEMBAT</a>, hecho con ♥ · <a href="https://github.com/HEMBAT/declara-gt" target="_blank" rel="noopener" style="color:rgba(10,10,10,0.5);">código en GitHub</a></div>
+      </div>
+
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    loaded: false,
+    screen: 'dashboard',
+    periodId: '2026-07',
+    showBanner: true,
+    periods: [],
+    clients: [],
+    rateHistory: null,
+    importStep: 'idle',
+    importDraft: null,
+    classifyChoices: {},
+    editingRates: { iva: false, isr: false },
+    newVigencia: {}
+  };
+
+  componentDidMount() {
+    import('./mock-data.js').then(mod => {
+      this.mod = mod;
+      this.setState({
+        loaded: true,
+        periods: mod.PERIODS.map(p => ({ ...p, invoices: p.invoices.map(i => ({ ...i })), retenciones: p.retenciones.map(r => ({ ...r })) })),
+        clients: mod.CLIENTS.map(c => ({ ...c })),
+        rateHistory: JSON.parse(JSON.stringify(mod.RATE_HISTORY))
+      });
+    });
+  }
+
+  getPeriod(id) {
+    return this.state.periods.find(p => p.id === id) || null;
+  }
+
+  goImportar = () => this.setState({ screen: 'importar' });
+  viewOnboarding = (e) => { e && e.preventDefault(); this.setState({ periodId: null }); };
+  backToLatestPeriod = (e) => { e && e.preventDefault(); const ps = this.state.periods; this.setState({ periodId: ps.length ? ps[ps.length - 1].id : null }); };
+  dismissBanner = () => this.setState({ showBanner: false });
+
+  onPeriodSelect = (e) => {
+    const v = e.target.value;
+    this.setState({ periodId: v === '__none__' ? null : v });
+  };
+
+  markCalculado = () => {
+    this.setState(s => ({ periods: s.periods.map(p => p.id === s.periodId ? { ...p, status: 'calculado' } : p) }));
+  };
+  markDeclarado = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    this.setState(s => ({ periods: s.periods.map(p => p.id === s.periodId ? { ...p, status: 'declarado', fechaPresentacion: today } : p) }));
+  };
+
+  // --- Importación ---
+  startImport = () => {
+    const batch = this.mod.IMPORT_BATCH;
+    this.setState({
+      importStep: 'preview',
+      importDraft: { periodId: batch.periodId, invoices: batch.invoices.map(i => ({ ...i })), newClients: batch.newClients.map(c => ({ ...c })) },
+      classifyChoices: {}
+    });
+  };
+  proceedFromPreview = () => {
+    const draft = this.state.importDraft;
+    if (draft.newClients.length === 0) { this.finishImport(); return; }
+    this.setState({ importStep: 'classify' });
+  };
+  setClassify = (nit, tipo) => {
+    this.setState(s => ({ classifyChoices: { ...s.classifyChoices, [nit]: tipo } }));
+  };
+  finishImport = () => {
+    const draft = this.state.importDraft;
+    const choices = this.state.classifyChoices;
+    const invoices = draft.invoices.map(i => i.tipo ? i : { ...i, tipo: choices[i.clienteNit] || 'bien' });
+    const newClientEntries = draft.newClients.map(c => ({ nit: c.nit, nombre: c.nombre, tipo: choices[c.nit] || 'bien' }));
+    this.setState(s => {
+      const existingIdx = s.periods.findIndex(p => p.id === draft.periodId);
+      const newPeriod = { id: draft.periodId, status: 'pendiente', fechaPresentacion: null, invoices, retenciones: [] };
+      const periods = existingIdx >= 0
+        ? s.periods.map((p, idx) => idx === existingIdx ? newPeriod : p)
+        : [...s.periods, newPeriod].sort((a, b) => a.id.localeCompare(b.id));
+      const clientNits = new Set(s.clients.map(c => c.nit));
+      const clients = [...s.clients, ...newClientEntries.filter(c => !clientNits.has(c.nit))];
+      return { periods, clients, importStep: 'done' };
+    });
+  };
+  resetImport = () => this.setState({ importStep: 'idle', importDraft: null, classifyChoices: {} });
+  goToImportedFacturas = () => {
+    const pid = this.state.importDraft ? this.state.importDraft.periodId : this.state.periodId;
+    this.setState({ screen: 'facturas', periodId: pid, importStep: 'idle', importDraft: null, classifyChoices: {} });
+  };
+
+  // --- Clientes ---
+  updateClientField = (nit, field, value) => {
+    this.setState(s => ({ clients: s.clients.map(c => c.nit === nit ? { ...c, [field]: value } : c) }));
+  };
+
+  // --- Parámetros ---
+  toggleAddVigencia = (type) => {
+    this.setState(s => ({
+      editingRates: { ...s.editingRates, [type]: !s.editingRates[type] },
+      newVigencia: type === 'iva' ? { tasa: 12, vigenteDesde: '' } : { tramo1Tasa: 5, tramo1Limite: 30000, tramo2Tasa: 7, vigenteDesde: '' }
+    }));
+  };
+  setNewVigenciaField = (field, value) => {
+    this.setState(s => ({ newVigencia: { ...s.newVigencia, [field]: value } }));
+  };
+  submitVigencia = (type) => {
+    const nv = this.state.newVigencia;
+    if (!nv.vigenteDesde) return;
+    this.setState(s => {
+      const list = s.rateHistory[type].map(r => r.vigenteHasta === null ? { ...r, vigenteHasta: nv.vigenteDesde } : r);
+      const entry = type === 'iva'
+        ? { id: 'iva-' + Date.now(), tasa: Number(nv.tasa), vigenteDesde: nv.vigenteDesde, vigenteHasta: null, nota: 'Agregado manualmente' }
+        : { id: 'isr-' + Date.now(), tramo1Tasa: Number(nv.tramo1Tasa), tramo1Limite: Number(nv.tramo1Limite), tramo2Tasa: Number(nv.tramo2Tasa), vigenteDesde: nv.vigenteDesde, vigenteHasta: null, nota: 'Agregado manualmente' };
+      return { rateHistory: { ...s.rateHistory, [type]: [...list, entry] }, editingRates: { ...s.editingRates, [type]: false } };
+    });
+  };
+
+  renderVals() {
+    const mod = this.mod;
+    if (!this.state.loaded || !mod) return { loaded: false };
+
+    const screen = this.state.screen;
+    const period = this.state.periodId ? this.getPeriod(this.state.periodId) : null;
+    const totals = period ? mod.computeTotals(period) : null;
+
+    const navDefs = [
+      { key: 'dashboard', label: 'Dashboard' },
+      { key: 'importar', label: 'Importación' },
+      { key: 'facturas', label: 'Facturas' },
+      { key: 'clientes', label: 'Clientes' },
+      { key: 'parametros', label: 'Parámetros' }
+    ];
+    const navItems = navDefs.map(n => ({
+      label: n.label,
+      opacity: screen === n.key ? 1 : 0.6,
+      bg: screen === n.key ? 'rgba(255,255,255,0.14)' : 'transparent',
+      go: () => this.setState({ screen: n.key })
+    }));
+
+    const statusMeta = {
+      pendiente: { label: 'Pendiente de calcular', bg: 'rgba(10,10,10,0.06)', color: 'rgba(10,10,10,0.6)', border: '1px dashed rgba(10,10,10,0.25)' },
+      calculado: { label: 'Calculado, sin declarar', bg: 'rgba(14,107,79,0.1)', color: '#0E6B4F', border: '1px solid rgba(14,107,79,0.25)' },
+      declarado: { label: 'Declarado / presentado', bg: '#0E6B4F', color: '#FAF8F4', border: 'none' }
+    };
+
+    const periodOptions = this.state.periods.map(p => ({ value: p.id, label: mod.periodLabel(p.id) }));
+    periodOptions.push({ value: '__none__', label: '— Ver primer uso (sin período) —' });
+
+    const fmt = totals ? {
+      totalFacturado: mod.formatQ(totals.totalFacturado),
+      baseSinIva: mod.formatQ(totals.baseSinIva),
+      totalIva: mod.formatQ(totals.totalIva),
+      tramo1Monto: mod.formatQ(totals.isr.tramo1Monto),
+      tramo2Monto: mod.formatQ(totals.isr.tramo2Monto),
+      isrTotal: mod.formatQ(totals.isr.total),
+      retenciones: mod.formatQ(totals.retenciones),
+      montoFinal: mod.formatQ(Math.abs(totals.montoFinal))
+    } : {};
+
+    const montoFinalColor = totals && totals.montoFinal > 0 ? '#C8354F' : '#FAF8F4';
+    const montoFinalNota = totals
+      ? (totals.montoFinal > 0
+        ? 'Este monto debe pagarse en el formulario SAT-1311 dentro del plazo mensual.'
+        : (totals.montoFinal < 0 ? 'Tus retenciones superan el impuesto — hay saldo a favor.' : 'No hay impuesto pendiente este período.'))
+      : '';
+
+    const tipoLabel = { bien: 'Bien', servicio: 'Servicio', combustible: 'Combustible' };
+    const tipoOptions = [{ value: 'bien', label: 'Bien' }, { value: 'servicio', label: 'Servicio' }, { value: 'combustible', label: 'Combustible' }];
+
+    // --- Importación ---
+    const draft = this.state.importDraft;
+    const previewRows = draft ? draft.invoices.map(i => ({
+      id: i.id, fecha: mod.formatFecha(i.fecha), cliente: i.clienteNombre, nit: i.clienteNit,
+      tipoDte: i.tipoDte, monto: mod.formatQ(i.monto),
+      unclassified: !i.tipo
+    })) : [];
+    const previewSummary = draft ? mod.formatQ(draft.invoices.reduce((s, i) => s + i.monto, 0)) : '';
+    const classifyList = draft ? draft.newClients.map(c => ({
+      nit: c.nit, nombre: c.nombre,
+      options: tipoOptions.map(o => {
+        const selected = this.state.classifyChoices[c.nit] === o.value;
+        return {
+          value: o.value, label: o.label,
+          bg: selected ? '#0E6B4F' : '#fff',
+          color: selected ? '#FAF8F4' : '#0E6B4F',
+          pick: () => this.setClassify(c.nit, o.value)
+        };
+      })
+    })) : [];
+    const allClassified = classifyList.every(c => !!this.state.classifyChoices[c.nit]);
+    const importedPeriodLabel = draft ? mod.periodLabel(draft.periodId) : '';
+    const importedCount = draft ? draft.invoices.length : 0;
+    const importedNewClientsCount = draft ? draft.newClients.length : 0;
+
+    // --- Facturas ---
+    const facturaRows = period ? [...period.invoices].sort((a, b) => a.fecha.localeCompare(b.fecha)).map(inv => {
+      const isCredit = inv.tipoDte === 'NCRE';
+      const base = +(inv.monto / (1 + mod.IVA_RATE)).toFixed(2);
+      const iva = +(inv.monto - base).toFixed(2);
+      const amountColor = inv.anulada ? 'rgba(10,10,10,0.4)' : (isCredit ? '#C8354F' : '#0A0A0A');
+      return {
+        id: inv.id,
+        fecha: mod.formatFecha(inv.fecha),
+        clienteNombre: inv.clienteNombre,
+        clienteNit: inv.clienteNit,
+        tipoDte: inv.tipoDte,
+        tipoLabel: tipoLabel[inv.tipo] || '—',
+        monto: mod.formatQ(inv.monto),
+        iva: mod.formatQ(iva),
+        base: mod.formatQ(base),
+        anulada: inv.anulada,
+        rowOpacity: inv.anulada ? 0.42 : 1,
+        rowDecoration: inv.anulada ? 'line-through' : 'none',
+        amountColor
+      };
+    }) : [];
+
+    // --- Clientes ---
+    const clienteRows = this.state.clients.map(c => ({
+      nit: c.nit,
+      nombre: c.nombre,
+      tipo: c.tipo,
+      onNombreChange: (e) => this.updateClientField(c.nit, 'nombre', e.target.value),
+      onTipoChange: (e) => this.updateClientField(c.nit, 'tipo', e.target.value)
+    }));
+
+    // --- Parámetros ---
+    const rh = this.state.rateHistory;
+    const ivaRows = rh ? rh.iva.map(r => ({
+      tasa: r.tasa + '%', vigenteDesde: mod.formatFecha(r.vigenteDesde),
+      vigenteHasta: r.vigenteHasta ? mod.formatFecha(r.vigenteHasta) : 'Vigente', nota: r.nota
+    })) : [];
+    const isrRows = rh ? rh.isr.map(r => ({
+      tramos: r.tramo1Tasa + '% hasta ' + mod.formatQ(r.tramo1Limite) + ' · ' + r.tramo2Tasa + '% excedente',
+      vigenteDesde: mod.formatFecha(r.vigenteDesde),
+      vigenteHasta: r.vigenteHasta ? mod.formatFecha(r.vigenteHasta) : 'Vigente', nota: r.nota
+    })) : [];
+
+    return {
+      loaded: true,
+      showBanner: this.state.showBanner,
+      dismissBanner: this.dismissBanner,
+      navItems,
+      isDashboard: screen === 'dashboard',
+      isImportar: screen === 'importar',
+      isFacturas: screen === 'facturas',
+      isClientes: screen === 'clientes',
+      isParametros: screen === 'parametros',
+
+      importStep: this.state.importStep,
+      importStepIsIdle: this.state.importStep === 'idle',
+      importStepIsPreview: this.state.importStep === 'preview',
+      importStepIsClassify: this.state.importStep === 'classify',
+      importStepIsDone: this.state.importStep === 'done',
+      finishDisabled: !allClassified,
+      finishBg: allClassified ? '#0E6B4F' : 'rgba(10,10,10,0.25)',
+      finishCursor: allClassified ? 'pointer' : 'not-allowed',
+      startImport: this.startImport,
+      proceedFromPreview: this.proceedFromPreview,
+      resetImport: this.resetImport,
+      finishImport: this.finishImport,
+      goToImportedFacturas: this.goToImportedFacturas,
+      previewRows,
+      previewSummary,
+      previewCount: importedCount,
+      classifyList,
+      allClassified,
+      importedPeriodLabel,
+      importedNewClientsCount,
+
+      periodSelectValueFacturas: this.state.periodId || '__none__',
+      facturaRows,
+      facturasHasRows: facturaRows.length > 0,
+
+      clienteRows,
+      hasClientes: this.state.clients.length > 0,
+      noClientes: this.state.clients.length === 0,
+      tipoOptions,
+
+      ivaRows,
+      isrRows,
+      addingIva: this.state.editingRates.iva,
+      addingIsr: this.state.editingRates.isr,
+      toggleAddIva: () => this.toggleAddVigencia('iva'),
+      toggleAddIsr: () => this.toggleAddVigencia('isr'),
+      newVigencia: this.state.newVigencia,
+      setNVTasa: (e) => this.setNewVigenciaField('tasa', e.target.value),
+      setNVDesde: (e) => this.setNewVigenciaField('vigenteDesde', e.target.value),
+      setNVT1Tasa: (e) => this.setNewVigenciaField('tramo1Tasa', e.target.value),
+      setNVLimite: (e) => this.setNewVigenciaField('tramo1Limite', e.target.value),
+      setNVT2Tasa: (e) => this.setNewVigenciaField('tramo2Tasa', e.target.value),
+      submitIva: () => this.submitVigencia('iva'),
+      submitIsr: () => this.submitVigencia('isr'),
+
+      hasSelectedPeriod: !!period,
+      noPeriodSelected: !period,
+      periodHasInvoices: !!(period && period.invoices.filter(i => !i.anulada).length),
+      periodEmpty: !!(period && period.invoices.filter(i => !i.anulada).length === 0),
+      periodSelectValue: this.state.periodId || '__none__',
+      periodOptions,
+      onPeriodSelect: this.onPeriodSelect,
+      periodTitleLabel: period ? mod.periodLabel(period.id) : '',
+      periodTopbarLabel: period ? mod.periodLabel(period.id) : 'Sin período',
+      statusDotColor: period ? (period.status === 'declarado' ? '#0E6B4F' : period.status === 'calculado' ? '#FAF8F4' : 'rgba(250,248,244,0.4)') : 'rgba(250,248,244,0.3)',
+      statusBadge: period ? statusMeta[period.status] : statusMeta.pendiente,
+      canMarkCalculado: !!(period && period.status === 'pendiente' && period.invoices.filter(i => !i.anulada).length > 0),
+      canMarkDeclarado: !!(period && period.status === 'calculado'),
+      markCalculado: this.markCalculado,
+      markDeclarado: this.markDeclarado,
+      totals: totals ? { cantidadFacturas: totals.cantidadFacturas, cantRetenciones: period.retenciones.length } : {},
+      fmt,
+      montoFinalColor,
+      montoFinalNota,
+      goImportar: this.goImportar,
+      viewOnboarding: this.viewOnboarding,
+      backToLatestPeriod: this.backToLatestPeriod
+    };
+  }
+}
+
+</script>
+</body>
+</html>
