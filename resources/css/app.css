@@ -280,6 +280,42 @@ input, select, textarea, button {
     margin-top: 4px;
 }
 
+/*
+ * Filas de tres celdas: etiqueta de la casilla + columnas BASE y CRÉDITO,
+ * como las pide el cuadro 5 del SAT-2237. Los montos van en columnas de
+ * ancho fijo para que se lean alineados de arriba abajo.
+ */
+.tarjeta__fila--tres {
+    display: grid;
+    grid-template-columns: 1fr 130px 130px;
+    gap: 10px;
+    align-items: baseline;
+}
+
+.tarjeta__fila--tres > span:not(:first-child) {
+    text-align: right;
+}
+
+.tarjeta__fila--encabezado {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    color: rgba(10, 10, 10, 0.45);
+    margin-bottom: 8px;
+}
+
+.tarjeta__fila--solo-base {
+    color: rgba(10, 10, 10, 0.55);
+}
+
+@media (max-width: 640px) {
+    .tarjeta__fila--tres {
+        grid-template-columns: 1fr 92px 92px;
+        gap: 6px;
+    }
+}
+
 /* Monto final */
 .monto-final {
     background: var(--verde-oscuro);

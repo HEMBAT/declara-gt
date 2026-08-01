@@ -117,6 +117,16 @@
                     </div>
                 </div>
                 <div class="tarjeta">
+                    <div class="tarjeta__etiqueta">Compras sin IVA</div>
+                    <div class="tarjeta__valor mono">{{ \App\Support\Formato::moneda($desglose->baseCreditoTotal) }}</div>
+                    <div class="tarjeta__nota">Base que pide el SAT junto a cada crédito</div>
+                    <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(10,10,10,0.06);">
+                        <div class="tarjeta__fila"><span>Combustibles</span><span class="mono">{{ \App\Support\Formato::moneda($desglose->baseCombustibles) }}</span></div>
+                        <div class="tarjeta__fila"><span>Otras compras</span><span class="mono">{{ \App\Support\Formato::moneda($desglose->baseOtrasCompras) }}</span></div>
+                        <div class="tarjeta__fila"><span>Servicios</span><span class="mono">{{ \App\Support\Formato::moneda($desglose->baseServiciosAdquiridos) }}</span></div>
+                    </div>
+                </div>
+                <div class="tarjeta">
                     <div class="tarjeta__etiqueta">Remanente del período anterior</div>
                     <div class="tarjeta__valor mono">{{ \App\Support\Formato::moneda($resultadoIva->remanenteAnterior) }}</div>
                     <div class="tarjeta__nota">Crédito acumulado que no se usó antes</div>

@@ -53,13 +53,24 @@ final class DesgloseSat2237
         $combustiblesCentavos = 0;
         $otrasComprasCentavos = 0;
         $serviciosAdquiridosCentavos = 0;
+        $baseCombustiblesCentavos = 0;
+        $baseOtrasComprasCentavos = 0;
+        $baseServiciosAdquiridosCentavos = 0;
+        $basePequenosContribuyentesCentavos = 0;
         $baseNoDeducibleCentavos = 0;
 
         foreach ($lineasRecibidas as $linea) {
             $baseCentavos = self::aCentavos($linea->baseSinIva) * $linea->signo;
 
             if ($linea->generaCredito !== true) {
-                $baseNoDeducibleCentavos += $baseCentavos;
+                // El formulario separa las compras a Pequeño Contribuyente del
+                // resto de las que no dan derecho a crédito: son dos casillas
+                // distintas, ambas de solo base.
+                if ($linea->esPequenoContribuyente) {
+                    $basePequenosContribuyentesCentavos += $baseCentavos;
+                } else {
+                    $baseNoDeducibleCentavos += $baseCentavos;
+                }
 
                 continue;
             }
@@ -71,10 +82,21 @@ final class DesgloseSat2237
                 'servicio' => $serviciosAdquiridosCentavos += $ivaCentavos,
                 default => $otrasComprasCentavos += $ivaCentavos, // 'bien' o null
             };
+
+            // La base va a la misma casilla que su crédito: el formulario pide
+            // las dos columnas por fila. Ya viene sin IVA ni IDP desde la
+            // importación, aquí no se le resta nada.
+            match ($linea->tipo) {
+                'combustible' => $baseCombustiblesCentavos += $baseCentavos,
+                'servicio' => $baseServiciosAdquiridosCentavos += $baseCentavos,
+                default => $baseOtrasComprasCentavos += $baseCentavos, // 'bien' o null
+            };
         }
 
         $debitoTotalCentavos = $ventasBienCentavos + $serviciosCentavos;
+        $baseDebitoTotalCentavos = $ingresosBienCentavos + $ingresosServicioCentavos;
         $creditoTotalCentavos = $combustiblesCentavos + $otrasComprasCentavos + $serviciosAdquiridosCentavos;
+        $baseCreditoTotalCentavos = $baseCombustiblesCentavos + $baseOtrasComprasCentavos + $baseServiciosAdquiridosCentavos;
 
         return new ResultadoDesgloseSat2237(
             ventasGravadasBien: self::aDecimal($ventasBienCentavos),
@@ -84,10 +106,16 @@ final class DesgloseSat2237
             creditoOtrasCompras: self::aDecimal($otrasComprasCentavos),
             creditoServiciosAdquiridos: self::aDecimal($serviciosAdquiridosCentavos),
             creditoTotal: self::aDecimal($creditoTotalCentavos),
+            baseCombustibles: self::aDecimal($baseCombustiblesCentavos),
+            baseOtrasCompras: self::aDecimal($baseOtrasComprasCentavos),
+            baseServiciosAdquiridos: self::aDecimal($baseServiciosAdquiridosCentavos),
+            baseCreditoTotal: self::aDecimal($baseCreditoTotalCentavos),
+            basePequenosContribuyentes: self::aDecimal($basePequenosContribuyentesCentavos),
             baseNoDeducible: self::aDecimal($baseNoDeducibleCentavos),
             remanenteAnterior: $remanenteAnterior,
             ingresosBienes: self::aDecimal($ingresosBienCentavos),
             ingresosServicios: self::aDecimal($ingresosServicioCentavos),
+            baseDebitoTotal: self::aDecimal($baseDebitoTotalCentavos),
         );
     }
 

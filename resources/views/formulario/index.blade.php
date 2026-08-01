@@ -28,47 +28,71 @@
 
         <div class="panel" style="margin-bottom:18px;">
             <div style="font-size:14.5px; font-weight:700; margin-bottom:14px;">Cuadro 3 — Débito fiscal</div>
-            <div class="tarjeta__fila">
+            <div class="tarjeta__fila tarjeta__fila--tres tarjeta__fila--encabezado">
+                <span>Casilla</span>
+                <span>Base</span>
+                <span>Débitos</span>
+            </div>
+            <div class="tarjeta__fila tarjeta__fila--tres">
                 <span>Ventas gravadas con tarifa general — Bienes</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->ingresosBienes) }}</span>
                 <span class="mono">{{ \App\Support\Formato::moneda($desglose->ventasGravadasBien) }}</span>
             </div>
-            <div class="tarjeta__fila">
+            <div class="tarjeta__fila tarjeta__fila--tres">
                 <span>Prestación de servicios gravados con tarifa general</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->ingresosServicios) }}</span>
                 <span class="mono">{{ \App\Support\Formato::moneda($desglose->serviciosGravados) }}</span>
             </div>
-            <div class="tarjeta__fila tarjeta__fila--total">
-                <span>Total débito fiscal</span>
+            <div class="tarjeta__fila tarjeta__fila--tres tarjeta__fila--total">
+                <span>Sumatoria de las columnas Base y Débitos</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->baseDebitoTotal) }}</span>
                 <span class="mono">{{ \App\Support\Formato::moneda($desglose->debitoTotal) }}</span>
             </div>
         </div>
 
         <div class="panel" style="margin-bottom:18px;">
-            <div style="font-size:14.5px; font-weight:700; margin-bottom:14px;">Cuadro 5 — Crédito fiscal</div>
-            <div class="tarjeta__fila">
+            <div style="font-size:14.5px; font-weight:700; margin-bottom:4px;">Cuadro 5 — Crédito fiscal por operaciones locales</div>
+            <div class="encabezado-pantalla__subtitulo" style="margin-bottom:14px;">Declaraguate pide las dos columnas por casilla: la base es el valor de tus facturas sin IVA (y sin IDP en los combustibles).</div>
+            <div class="tarjeta__fila tarjeta__fila--tres tarjeta__fila--encabezado">
+                <span>Casilla</span>
+                <span>Base</span>
+                <span>Créditos</span>
+            </div>
+            <div class="tarjeta__fila tarjeta__fila--tres">
                 <span>Compras de combustibles</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->baseCombustibles) }}</span>
                 <span class="mono">{{ \App\Support\Formato::moneda($desglose->creditoCombustibles) }}</span>
             </div>
-            <div class="tarjeta__fila">
+            <div class="tarjeta__fila tarjeta__fila--tres">
                 <span>Otras compras de bienes</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->baseOtrasCompras) }}</span>
                 <span class="mono">{{ \App\Support\Formato::moneda($desglose->creditoOtrasCompras) }}</span>
             </div>
-            <div class="tarjeta__fila">
+            <div class="tarjeta__fila tarjeta__fila--tres">
                 <span>Servicios adquiridos</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->baseServiciosAdquiridos) }}</span>
                 <span class="mono">{{ \App\Support\Formato::moneda($desglose->creditoServiciosAdquiridos) }}</span>
             </div>
-            <div class="tarjeta__fila tarjeta__fila--total">
+            <div class="tarjeta__fila tarjeta__fila--tres tarjeta__fila--solo-base">
+                <span>Compras y servicios adquiridos de pequeños contribuyentes</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->basePequenosContribuyentes) }}</span>
+                <span class="mono">—</span>
+            </div>
+            <div class="tarjeta__fila tarjeta__fila--tres tarjeta__fila--solo-base">
+                <span>Compras que no generan derecho a compensación del crédito fiscal</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->baseNoDeducible) }}</span>
+                <span class="mono">—</span>
+            </div>
+            <div class="tarjeta__fila tarjeta__fila--tres tarjeta__fila--total">
                 <span>Total crédito fiscal</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->baseCreditoTotal) }}</span>
                 <span class="mono">{{ \App\Support\Formato::moneda($desglose->creditoTotal) }}</span>
             </div>
 
             <div style="margin-top:16px; padding-top:12px; border-top:1px dashed rgba(10,10,10,0.12);">
-                <div class="tarjeta__fila">
-                    <span style="color:rgba(10,10,10,0.55);">Compras que no generan crédito fiscal (informativo)</span>
-                    <span class="mono" style="color:rgba(10,10,10,0.55);">{{ \App\Support\Formato::moneda($desglose->baseNoDeducible) }}</span>
-                </div>
-                <div class="tarjeta__fila">
-                    <span style="color:rgba(10,10,10,0.55);">Remanente de crédito del período anterior</span>
-                    <span class="mono" style="color:rgba(10,10,10,0.55);">{{ \App\Support\Formato::moneda($desglose->remanenteAnterior) }}</span>
+                <div class="tarjeta__fila tarjeta__fila--solo-base">
+                    <span>Remanente de crédito del período anterior</span>
+                    <span class="mono">{{ \App\Support\Formato::moneda($desglose->remanenteAnterior) }}</span>
                 </div>
             </div>
         </div>
@@ -97,7 +121,7 @@
             </div>
             <div class="tarjeta__fila tarjeta__fila--total">
                 <span>Total base gravable ISR</span>
-                <span class="mono">{{ \App\Support\Formato::moneda((float) $desglose->ingresosBienes + (float) $desglose->ingresosServicios) }}</span>
+                <span class="mono">{{ \App\Support\Formato::moneda($desglose->baseDebitoTotal) }}</span>
             </div>
         </div>
     @endif

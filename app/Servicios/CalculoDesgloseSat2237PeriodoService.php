@@ -50,6 +50,7 @@ final class CalculoDesgloseSat2237PeriodoService
                 signo: $documento->tipoDte->signo,
                 tipo: $documento->tipo?->value,
                 generaCredito: $documento->genera_credito,
+                esPequenoContribuyente: $documento->tipoDte->codigo === 'FPEQ',
             ));
 
         $periodoAnterior = Carbon::createFromFormat('Y-m-d', $periodo.'-01')

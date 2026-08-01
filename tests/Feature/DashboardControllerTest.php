@@ -30,6 +30,7 @@ it('muestra los subtotales de bienes/servicios y del IVA general bajo las tarjet
         'tipo' => 'combustible',
         'iva' => '60.00',
         'idp' => '150.00',
+        'base_sin_iva' => '500.00',
         'genera_credito' => true,
     ]);
 
@@ -40,4 +41,6 @@ it('muestra los subtotales de bienes/servicios y del IVA general bajo las tarjet
     $respuesta->assertSee('Ver formulario completo', false);
     $respuesta->assertSee('Q240.00', false); // servicios gravados (débito)
     $respuesta->assertSee('Q60.00', false); // combustibles (crédito)
+    $respuesta->assertSee('Compras sin IVA', false); // tarjeta de base de las recibidas
+    $respuesta->assertSee('Q500.00', false); // base del combustible, sin IVA ni IDP
 });

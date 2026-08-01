@@ -45,6 +45,7 @@ it('separa el crédito del período en combustibles, otras compras y servicios a
         'tipo' => 'combustible',
         'iva' => '60.00',
         'idp' => '150.00',
+        'base_sin_iva' => '500.00',
         'genera_credito' => true,
     ]);
 
@@ -54,6 +55,7 @@ it('separa el crédito del período en combustibles, otras compras y servicios a
         'direccion' => 'recibida',
         'tipo' => 'bien',
         'iva' => '120.00',
+        'base_sin_iva' => '1000.00',
         'genera_credito' => true,
     ]);
 
@@ -63,6 +65,7 @@ it('separa el crédito del período en combustibles, otras compras y servicios a
         'direccion' => 'recibida',
         'tipo' => 'servicio',
         'iva' => '240.00',
+        'base_sin_iva' => '2000.00',
         'genera_credito' => true,
     ]);
 
@@ -71,10 +74,16 @@ it('separa el crédito del período en combustibles, otras compras y servicios a
     expect($resultado->creditoCombustibles)->toBe('60.00')
         ->and($resultado->creditoOtrasCompras)->toBe('120.00')
         ->and($resultado->creditoServiciosAdquiridos)->toBe('240.00')
-        ->and($resultado->creditoTotal)->toBe('420.00');
+        ->and($resultado->creditoTotal)->toBe('420.00')
+        // La columna BASE del cuadro 5, casilla por casilla. La del
+        // combustible no vuelve a restar el IDP: base_sin_iva ya lo excluye.
+        ->and($resultado->baseCombustibles)->toBe('500.00')
+        ->and($resultado->baseOtrasCompras)->toBe('1000.00')
+        ->and($resultado->baseServiciosAdquiridos)->toBe('2000.00')
+        ->and($resultado->baseCreditoTotal)->toBe('3500.00');
 });
 
-it('incluye en la base no deducible las compras que no generan crédito, incluidas las FPEQ', function () {
+it('separa las compras a Pequeño Contribuyente del resto de compras sin derecho a crédito', function () {
     $fpeq = TipoDte::factory()->pequenoContribuyente()->create();
     $factura = TipoDte::factory()->factura()->create();
 
@@ -100,7 +109,10 @@ it('incluye en la base no deducible las compras que no generan crédito, incluid
 
     $resultado = (new CalculoDesgloseSat2237PeriodoService)->calcularPeriodo('2026-05');
 
-    expect($resultado->baseNoDeducible)->toBe('1850.00')
+    // Son dos casillas distintas del cuadro 5, no un solo total.
+    expect($resultado->basePequenosContribuyentes)->toBe('350.00')
+        ->and($resultado->baseNoDeducible)->toBe('1500.00')
+        ->and($resultado->baseCreditoTotal)->toBe('0.00')
         ->and($resultado->creditoTotal)->toBe('0.00');
 });
 

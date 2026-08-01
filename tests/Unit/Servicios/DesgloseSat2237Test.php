@@ -74,6 +74,68 @@ it('las compras que no generan crédito solo aparecen en la base informativa, no
         ->and($desglose->baseNoDeducible)->toBe('5000.00');
 });
 
+it('la base de cada casilla de crédito acompaña a su propio crédito y suma el total de base', function () {
+    $lineasRecibidas = [
+        new LineaSat2237(iva: '60.00', baseSinIva: '910.00', signo: 1, tipo: 'combustible', generaCredito: true),
+        new LineaSat2237(iva: '120.00', baseSinIva: '1000.00', signo: 1, tipo: 'bien', generaCredito: true),
+        new LineaSat2237(iva: '240.00', baseSinIva: '2000.00', signo: 1, tipo: 'servicio', generaCredito: true),
+        new LineaSat2237(iva: '999.00', baseSinIva: '5000.00', signo: 1, tipo: 'servicio', generaCredito: false),
+        new LineaSat2237(iva: '0.00', baseSinIva: '300.00', signo: 1, tipo: 'bien', generaCredito: false, esPequenoContribuyente: true),
+    ];
+
+    $desglose = (new DesgloseSat2237)->calcular([], $lineasRecibidas);
+
+    expect($desglose->baseCombustibles)->toBe('910.00')
+        ->and($desglose->baseOtrasCompras)->toBe('1000.00')
+        ->and($desglose->baseServiciosAdquiridos)->toBe('2000.00')
+        ->and($desglose->baseCreditoTotal)->toBe('3910.00') // 910 + 1000 + 2000
+        // Las casillas de solo base quedan fuera del total de base con crédito.
+        ->and($desglose->baseNoDeducible)->toBe('5000.00')
+        ->and($desglose->basePequenosContribuyentes)->toBe('300.00');
+});
+
+it('la base de combustibles es la suma tal cual de las líneas, sin volver a restar el IDP', function () {
+    // base_sin_iva ya viene como granTotal - IVA - IDP desde la importación.
+    $lineasRecibidas = [
+        new LineaSat2237(iva: '60.00', baseSinIva: '410.00', signo: 1, tipo: 'combustible', generaCredito: true),
+        new LineaSat2237(iva: '30.00', baseSinIva: '205.50', signo: 1, tipo: 'combustible', generaCredito: true),
+    ];
+
+    $desglose = (new DesgloseSat2237)->calcular([], $lineasRecibidas);
+
+    expect($desglose->baseCombustibles)->toBe('615.50')
+        ->and($desglose->creditoCombustibles)->toBe('90.00');
+});
+
+it('una nota de crédito recibida resta la base dentro de su propia categoría', function () {
+    $lineasRecibidas = [
+        new LineaSat2237(iva: '240.00', baseSinIva: '2000.00', signo: 1, tipo: 'servicio', generaCredito: true),
+        new LineaSat2237(iva: '50.00', baseSinIva: '400.00', signo: -1, tipo: 'servicio', generaCredito: true), // NCRE de servicio
+        new LineaSat2237(iva: '120.00', baseSinIva: '1000.00', signo: 1, tipo: 'bien', generaCredito: true),
+    ];
+
+    $desglose = (new DesgloseSat2237)->calcular([], $lineasRecibidas);
+
+    expect($desglose->baseServiciosAdquiridos)->toBe('1600.00') // 2000 - 400
+        ->and($desglose->baseOtrasCompras)->toBe('1000.00') // sin afectar
+        ->and($desglose->baseCreditoTotal)->toBe('2600.00');
+});
+
+it('una compra a Pequeño Contribuyente va a su propia casilla, no a la de no deducibles ni al crédito', function () {
+    $lineasRecibidas = [
+        new LineaSat2237(iva: '0.00', baseSinIva: '750.00', signo: 1, tipo: 'servicio', generaCredito: false, esPequenoContribuyente: true),
+        new LineaSat2237(iva: '999.00', baseSinIva: '5000.00', signo: 1, tipo: 'servicio', generaCredito: false),
+    ];
+
+    $desglose = (new DesgloseSat2237)->calcular([], $lineasRecibidas);
+
+    expect($desglose->basePequenosContribuyentes)->toBe('750.00')
+        ->and($desglose->baseNoDeducible)->toBe('5000.00')
+        ->and($desglose->baseServiciosAdquiridos)->toBe('0.00')
+        ->and($desglose->creditoServiciosAdquiridos)->toBe('0.00')
+        ->and($desglose->creditoTotal)->toBe('0.00');
+});
+
 it('retorna 0 en el subtotal de un tipo que no tiene documentos en el período', function () {
     $lineasEmitidas = [
         new LineaSat2237(iva: '480.00', baseSinIva: '4000.00', signo: 1, tipo: 'bien', generaCredito: null),
@@ -94,5 +156,7 @@ it('retorna todo en cero cuando no hay documentos ni remanente', function () {
 
     expect($desglose->debitoTotal)->toBe('0.00')
         ->and($desglose->creditoTotal)->toBe('0.00')
+        ->and($desglose->baseCreditoTotal)->toBe('0.00')
+        ->and($desglose->basePequenosContribuyentes)->toBe('0.00')
         ->and($desglose->remanenteAnterior)->toBe('0.00');
 });
