@@ -43,4 +43,5 @@ it('muestra los subtotales de bienes/servicios y del IVA general bajo las tarjet
     $respuesta->assertSee('Q60.00', false); // combustibles (crédito)
     $respuesta->assertSee('Compras sin IVA', false); // tarjeta de base de las recibidas
     $respuesta->assertSee('Q500.00', false); // base del combustible, sin IVA ni IDP
+    $respuesta->assertSee('Cantidad de documentos del período', false);
 });

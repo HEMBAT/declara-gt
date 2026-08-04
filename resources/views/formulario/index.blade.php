@@ -26,6 +26,8 @@
             Declaraguate pre-carga sus propias casillas a partir de lo que reportaste al SAT. Verifica que estos montos cuadren con esa pre-carga antes de presentar — esta pantalla es un apoyo para llenar el formulario, no lo sustituye.
         </div>
 
+        @include('partials.conteo-documentos')
+
         <div class="panel" style="margin-bottom:18px;">
             <div style="font-size:14.5px; font-weight:700; margin-bottom:14px;">Cuadro 3 — Débito fiscal</div>
             <div class="tarjeta__fila tarjeta__fila--tres tarjeta__fila--encabezado">

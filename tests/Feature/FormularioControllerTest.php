@@ -57,6 +57,49 @@ it('muestra la columna de base junto al crédito en cada casilla del cuadro 5', 
     $respuesta->assertSee('Q425.00', false);   // base de la compra a Pequeño Contribuyente
 });
 
+it('cuenta los documentos del período incluyendo anulados y facturas de Pequeño Contribuyente', function () {
+    $factura = TipoDte::factory()->factura()->create();
+    $fpeq = TipoDte::factory()->pequenoContribuyente()->create();
+
+    Documento::factory()->count(3)->create([
+        'tipo_dte_id' => $factura->id,
+        'periodo' => '2026-05',
+        'direccion' => 'recibida',
+    ]);
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $factura->id,
+        'periodo' => '2026-05',
+        'direccion' => 'recibida',
+        'anulado' => true,
+    ]);
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $fpeq->id,
+        'periodo' => '2026-05',
+        'direccion' => 'recibida',
+    ]);
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $factura->id,
+        'periodo' => '2026-05',
+        'direccion' => 'emitida',
+    ]);
+
+    // Otro período: no debe contarse.
+    Documento::factory()->create([
+        'tipo_dte_id' => $factura->id,
+        'periodo' => '2026-04',
+        'direccion' => 'emitida',
+    ]);
+
+    $respuesta = $this->get(route('formulario.index', ['periodo' => '2026-05']));
+
+    $respuesta->assertOk();
+    $respuesta->assertSee('Cantidad de documentos del período', false);
+    $respuesta->assertSeeInOrder(['Emitidos', '>1<', 'Recibidos', '>5<'], false); // 4 FACT (una anulada) + 1 FPEQ
+});
+
 it('muestra un estado vacío cuando no hay ningún período disponible', function () {
     $respuesta = $this->get(route('formulario.index'));
 

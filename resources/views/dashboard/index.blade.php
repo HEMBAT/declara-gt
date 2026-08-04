@@ -148,6 +148,10 @@
                     @endif
                 </div>
             </div>
+
+            <div style="margin-top:18px;">
+                @include('partials.conteo-documentos')
+            </div>
         @else
             <div class="estado-vacio">
                 <div class="estado-vacio__icono"><span></span></div>

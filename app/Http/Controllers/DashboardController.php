@@ -8,6 +8,7 @@ use App\Models\Retencion;
 use App\Servicios\CalculoDesgloseSat2237PeriodoService;
 use App\Servicios\CalculoIsrPeriodoService;
 use App\Servicios\CalculoIvaPeriodoService;
+use App\Servicios\ConteoDocumentosPeriodoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -47,6 +48,7 @@ class DashboardController extends Controller
             $datos['totalIva'] = $documentosActivos->sum(fn (Documento $d) => (float) $d->iva * $d->tipoDte->signo);
             $datos['cantidadFacturas'] = $documentosActivos->count();
             $datos['cantRetenciones'] = Retencion::query()->where('periodo', $periodoSeleccionado)->count();
+            $datos['conteoDocumentos'] = (new ConteoDocumentosPeriodoService)->contarPeriodo($periodoSeleccionado);
             $datos['periodo'] = Periodo::find($periodoSeleccionado);
             // Cualquier documento del período (emitido o recibido) basta para salir del estado vacío,
             // ya que el IVA general también depende de las recibidas.
