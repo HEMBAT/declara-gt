@@ -2,6 +2,7 @@
 
 use App\Models\Declaracion;
 use App\Models\Documento;
+use App\Models\RetencionIva;
 use App\Models\TipoDte;
 use App\Servicios\CalculoIvaPeriodoService;
 
@@ -177,4 +178,36 @@ it('recalcularDesde propaga el remanente a los períodos posteriores ya calculad
     // Julio: 1000 − 100 = 900; agosto arranca con esos 900: 900 − 100 = 800.
     expect(Declaracion::where('periodo', '2026-07')->first()->remanente_credito)->toBe('900.00')
         ->and(Declaracion::where('periodo', '2026-08')->first()->remanente_credito)->toBe('800.00');
+});
+
+it('encadena el saldo de retenciones de IVA de un período al siguiente', function () {
+    $servicio = new CalculoIvaPeriodoService;
+
+    RetencionIva::factory()->create(['periodo' => '2026-07', 'monto' => '96.43']);
+    RetencionIva::factory()->create(['periodo' => '2026-08', 'monto' => '96.43']);
+
+    $servicio->calcularPeriodo('2026-07');
+    $agosto = $servicio->calcularPeriodo('2026-08');
+
+    expect(Declaracion::where('periodo', '2026-07')->first()->remanente_retenciones)->toBe('96.43')
+        ->and($agosto->remanenteRetencionesAnterior)->toBe('96.43')
+        ->and($agosto->saldoRetenciones)->toBe('192.86');
+});
+
+it('usa el remanente de retenciones según Declaraguate y el acreditamiento registrado', function () {
+    Declaracion::factory()->create(['tipo' => 'IVA', 'periodo' => '2026-07', 'remanente_retenciones' => '50.00']);
+    Declaracion::factory()->create([
+        'tipo' => 'IVA',
+        'periodo' => '2026-08',
+        'remanente_retenciones_anterior_sat' => '1585.00',
+        'acreditamiento_retenciones' => '500.00',
+    ]);
+    RetencionIva::factory()->create(['periodo' => '2026-08', 'monto' => '96.00']);
+
+    $resultado = (new CalculoIvaPeriodoService)->calcularPeriodo('2026-08');
+
+    expect($resultado->remanenteRetencionesAnterior)->toBe('1585.00')
+        ->and($resultado->remanenteRetenciones)->toBe('1085.00')
+        ->and($resultado->saldoRetenciones)->toBe('1181.00')
+        ->and(Declaracion::where('periodo', '2026-08')->first()->remanente_retenciones)->toBe('1181.00');
 });

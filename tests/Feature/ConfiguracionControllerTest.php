@@ -6,6 +6,7 @@ use App\Models\Declaracion;
 use App\Models\Documento;
 use App\Models\ParametroImpuesto;
 use App\Models\Retencion;
+use App\Models\RetencionIva;
 use App\Models\TipoDte;
 
 it('redirige a Importación después de guardar el contribuyente, en vez de dejar al usuario varado', function () {
@@ -70,6 +71,7 @@ it('reinicia los datos borrando documentos, clientes, retenciones, declaraciones
     $contribuyente = Contribuyente::factory()->create(['nit' => '1234567-8']);
     Documento::factory()->create();
     Retencion::factory()->create();
+    RetencionIva::factory()->create();
     Declaracion::factory()->create();
     TipoDte::factory()->create();
     ParametroImpuesto::factory()->create();
@@ -84,6 +86,7 @@ it('reinicia los datos borrando documentos, clientes, retenciones, declaraciones
     expect(Documento::count())->toBe(0)
         ->and(Cliente::count())->toBe(0)
         ->and(Retencion::count())->toBe(0)
+        ->and(RetencionIva::count())->toBe(0)
         ->and(Declaracion::count())->toBe(0)
         ->and(Contribuyente::count())->toBe(0)
         ->and(TipoDte::count())->toBeGreaterThan(0)

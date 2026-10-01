@@ -16,12 +16,15 @@ use Illuminate\Database\Eloquent\Model;
  * aquí cada vez que calcula. Para ISR, esta tabla no se usa todavía —
  * CalculoIsrPeriodoService sigue calculando siempre al vuelo.
  *
- * remanente_anterior_sat es lo único que escribe el usuario: el remanente
- * del período anterior que muestra Declaraguate. Los recálculos nunca lo
- * tocan.
+ * Las columnas que escribe el usuario (los remanentes "según Declaraguate"
+ * y el acreditamiento de retenciones) nunca las tocan los recálculos.
  */
 #[Table('declaraciones')]
-#[Fillable(['tipo', 'periodo', 'montos', 'remanente_credito', 'remanente_anterior_sat', 'estado'])]
+#[Fillable([
+    'tipo', 'periodo', 'montos', 'remanente_credito', 'remanente_anterior_sat',
+    'remanente_retenciones', 'remanente_retenciones_anterior_sat',
+    'acreditamiento_retenciones', 'resolucion_acreditamiento', 'estado',
+])]
 class Declaracion extends Model
 {
     use HasFactory;
@@ -34,13 +37,8 @@ class Declaracion extends Model
      */
     public static function remanenteIvaAnterior(string $periodo): string
     {
-        $segunSat = self::query()
-            ->where('tipo', TipoDeclaracion::Iva)
-            ->where('periodo', $periodo)
-            ->first()
-            ?->remanente_anterior_sat;
-
-        return (string) ($segunSat ?? self::remanenteIvaCalculadoAnterior($periodo));
+        return self::delPeriodo($periodo)?->remanente_anterior_sat
+            ?? self::remanenteIvaCalculadoAnterior($periodo);
     }
 
     /**
@@ -49,17 +47,41 @@ class Declaracion extends Model
      */
     public static function remanenteIvaCalculadoAnterior(string $periodo): string
     {
-        $periodoAnterior = Carbon::createFromFormat('Y-m-d', $periodo.'-01')
+        return self::delPeriodo(self::periodoAnterior($periodo))?->remanente_credito ?? '0.00';
+    }
+
+    /**
+     * Remanente de retenciones de IVA con que arranca un período: el de
+     * Declaraguate si el usuario lo registró, o el saldo que dejó calculado
+     * el período anterior. Misma regla que remanenteIvaAnterior().
+     */
+    public static function remanenteRetencionesIvaAnterior(string $periodo): string
+    {
+        return self::delPeriodo($periodo)?->remanente_retenciones_anterior_sat
+            ?? self::remanenteRetencionesIvaCalculadoAnterior($periodo);
+    }
+
+    public static function remanenteRetencionesIvaCalculadoAnterior(string $periodo): string
+    {
+        return self::delPeriodo(self::periodoAnterior($periodo))?->remanente_retenciones ?? '0.00';
+    }
+
+    /**
+     * Declaración de IVA de un período, o null si aún no se ha calculado.
+     */
+    public static function delPeriodo(string $periodo): ?self
+    {
+        return self::query()
+            ->where('tipo', TipoDeclaracion::Iva)
+            ->where('periodo', $periodo)
+            ->first();
+    }
+
+    private static function periodoAnterior(string $periodo): string
+    {
+        return Carbon::createFromFormat('Y-m-d', $periodo.'-01')
             ->subMonthNoOverflow()
             ->format('Y-m');
-
-        $remanente = self::query()
-            ->where('tipo', TipoDeclaracion::Iva)
-            ->where('periodo', $periodoAnterior)
-            ->first()
-            ?->remanente_credito;
-
-        return (string) ($remanente ?? '0.00');
     }
 
     protected function casts(): array
@@ -69,6 +91,9 @@ class Declaracion extends Model
             'montos' => 'array',
             'remanente_credito' => 'decimal:2',
             'remanente_anterior_sat' => 'decimal:2',
+            'remanente_retenciones' => 'decimal:2',
+            'remanente_retenciones_anterior_sat' => 'decimal:2',
+            'acreditamiento_retenciones' => 'decimal:2',
         ];
     }
 }

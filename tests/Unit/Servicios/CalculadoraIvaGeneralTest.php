@@ -82,3 +82,73 @@ it('retorna todo en cero cuando no hay documentos ni remanente', function () {
         ->and($resultado->ivaAPagar)->toBe('0.00')
         ->and($resultado->remanenteCredito)->toBe('0.00');
 });
+
+it('acumula las retenciones de IVA cuando no hay impuesto contra el cual usarlas', function () {
+    // Agosto 2026 real: el crédito supera al débito y las retenciones solo se suman.
+    $resultado = (new CalculadoraIvaGeneral)->calcular(
+        lineasDebito: [new LineaIva(iva: '642.86', signo: 1)],
+        lineasCredito: [new LineaIva(iva: '587.72', signo: 1)],
+        remanenteAnterior: '7054.00',
+        remanenteRetencionesAnterior: '1585.00',
+        retencionesPeriodo: '96.43',
+    );
+
+    expect($resultado->impuestoDeterminado)->toBe('0.00')
+        ->and($resultado->remanenteRetenciones)->toBe('1585.00')
+        ->and($resultado->retencionesAplicadas)->toBe('0.00')
+        ->and($resultado->saldoRetenciones)->toBe('1681.43')
+        ->and($resultado->ivaAPagar)->toBe('0.00');
+});
+
+it('descuenta las retenciones de IVA del impuesto determinado', function () {
+    $resultado = (new CalculadoraIvaGeneral)->calcular(
+        lineasDebito: [new LineaIva(iva: '1000.00', signo: 1)],
+        lineasCredito: [new LineaIva(iva: '200.00', signo: 1)],
+        remanenteRetencionesAnterior: '300.00',
+        retencionesPeriodo: '100.00',
+    );
+
+    expect($resultado->impuestoDeterminado)->toBe('800.00')
+        ->and($resultado->retencionesAplicadas)->toBe('400.00')
+        ->and($resultado->ivaAPagar)->toBe('400.00')
+        ->and($resultado->saldoRetenciones)->toBe('0.00');
+});
+
+it('arrastra la parte de las retenciones que excede al impuesto', function () {
+    $resultado = (new CalculadoraIvaGeneral)->calcular(
+        lineasDebito: [new LineaIva(iva: '100.00', signo: 1)],
+        lineasCredito: [],
+        remanenteRetencionesAnterior: '300.00',
+        retencionesPeriodo: '100.00',
+    );
+
+    expect($resultado->retencionesAplicadas)->toBe('100.00')
+        ->and($resultado->ivaAPagar)->toBe('0.00')
+        ->and($resultado->saldoRetenciones)->toBe('300.00');
+});
+
+it('resta el acreditamiento en cuenta bancaria del remanente de retenciones', function () {
+    $resultado = (new CalculadoraIvaGeneral)->calcular(
+        lineasDebito: [],
+        lineasCredito: [],
+        remanenteRetencionesAnterior: '1585.00',
+        acreditamientoRetenciones: '1000.00',
+        retencionesPeriodo: '96.00',
+    );
+
+    expect($resultado->acreditamientoRetenciones)->toBe('1000.00')
+        ->and($resultado->remanenteRetenciones)->toBe('585.00')
+        ->and($resultado->saldoRetenciones)->toBe('681.00');
+});
+
+it('nunca deja negativo el remanente de retenciones aunque el acreditamiento lo supere', function () {
+    $resultado = (new CalculadoraIvaGeneral)->calcular(
+        lineasDebito: [],
+        lineasCredito: [],
+        remanenteRetencionesAnterior: '100.00',
+        acreditamientoRetenciones: '150.00',
+    );
+
+    expect($resultado->remanenteRetenciones)->toBe('0.00')
+        ->and($resultado->saldoRetenciones)->toBe('0.00');
+});

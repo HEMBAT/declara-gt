@@ -162,6 +162,9 @@
                     @else
                         No hay IVA pendiente este período.
                     @endif
+                    @if((float) $resultadoIva->saldoRetenciones > 0)
+                        <div style="margin-top:6px;">Saldo de retenciones de IVA: <span class="mono">{{ \App\Support\Formato::moneda($resultadoIva->saldoRetenciones) }}</span> · <a href="{{ route('retenciones.index', ['periodo' => $periodoSeleccionado]) }}" class="enlace-discreto">ver retenciones</a></div>
+                    @endif
                 </div>
             </div>
 

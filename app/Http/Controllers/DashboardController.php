@@ -11,10 +11,10 @@ use App\Servicios\CalculoDesgloseSat2237PeriodoService;
 use App\Servicios\CalculoIsrPeriodoService;
 use App\Servicios\CalculoIvaPeriodoService;
 use App\Servicios\ConteoDocumentosPeriodoService;
+use App\Support\Formato;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -90,9 +90,8 @@ class DashboardController extends Controller
      */
     public function guardarRemanenteSat(Request $request, string $periodo): RedirectResponse
     {
-        // Se acepta tal como se copia de Declaraguate: "1,858" o "Q1,858.00".
         $request->merge([
-            'remanente_anterior_sat' => str_replace([',', ' ', 'Q'], '', (string) $request->input('remanente_anterior_sat')),
+            'remanente_anterior_sat' => Formato::limpiarMontoIngresado($request->input('remanente_anterior_sat')),
         ]);
 
         $datos = $request->validate([
@@ -103,19 +102,7 @@ class DashboardController extends Controller
 
         $remanente = ($datos['remanente_anterior_sat'] ?? '') === '' ? null : $datos['remanente_anterior_sat'];
 
-        DB::transaction(function () use ($periodo, $remanente) {
-            $servicio = new CalculoIvaPeriodoService;
-
-            // Garantiza que exista la fila del período antes de anotarle el remanente.
-            $servicio->calcularPeriodo($periodo);
-
-            Declaracion::query()
-                ->where('tipo', TipoDeclaracion::Iva)
-                ->where('periodo', $periodo)
-                ->update(['remanente_anterior_sat' => $remanente]);
-
-            $servicio->recalcularDesde($periodo);
-        });
+        (new CalculoIvaPeriodoService)->anotarEnPeriodo($periodo, ['remanente_anterior_sat' => $remanente]);
 
         return redirect()->route('dashboard', ['periodo' => $periodo])->with(
             'exito',

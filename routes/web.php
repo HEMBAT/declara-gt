@@ -8,6 +8,7 @@ use App\Http\Controllers\FormularioController;
 use App\Http\Controllers\ImportacionController;
 use App\Http\Controllers\ParametroImpuestoController;
 use App\Http\Controllers\RetencionController;
+use App\Http\Controllers\RetencionIvaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -44,6 +45,11 @@ Route::put('/clientes/{cliente}', [ClienteController::class, 'actualizar'])->nam
 Route::get('/retenciones', [RetencionController::class, 'index'])->name('retenciones.index');
 Route::post('/retenciones', [RetencionController::class, 'guardar'])->name('retenciones.guardar');
 Route::delete('/retenciones/{retencion}', [RetencionController::class, 'eliminar'])->name('retenciones.eliminar');
+Route::post('/retenciones-iva', [RetencionIvaController::class, 'guardar'])->name('retencionesIva.guardar');
+Route::delete('/retenciones-iva/{retencionIva}', [RetencionIvaController::class, 'eliminar'])->name('retencionesIva.eliminar');
+Route::post('/periodos/{periodo}/retenciones-iva', [RetencionIvaController::class, 'guardarSaldo'])
+    ->where('periodo', '\d{4}-\d{2}')
+    ->name('retencionesIva.saldo');
 
 Route::get('/parametros', [ParametroImpuestoController::class, 'index'])->name('parametros.index');
 Route::post('/parametros/iva', [ParametroImpuestoController::class, 'nuevaVigenciaIva'])->name('parametros.iva');

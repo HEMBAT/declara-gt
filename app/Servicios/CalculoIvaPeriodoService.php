@@ -5,8 +5,10 @@ namespace App\Servicios;
 use App\Enums\TipoDeclaracion;
 use App\Models\Declaracion;
 use App\Models\Documento;
+use App\Models\RetencionIva;
 use App\Servicios\Dto\LineaIva;
 use App\Servicios\Dto\ResultadoIva;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Orquesta el cálculo del IVA general de un período: resuelve las líneas de
@@ -19,8 +21,9 @@ use App\Servicios\Dto\ResultadoIva;
  * su remanente para que el período siguiente pueda leerlo. No es una
  * caché — se recalcula igual cada vez, solo se guarda el remanente.
  *
- * El remanente de entrada puede venir de Declaraguate en vez de la cadena
- * (ver Declaracion::remanenteIvaAnterior).
+ * También encadena el saldo de retenciones de IVA (cuadro 7), con la misma
+ * mecánica. Ambos remanentes de entrada pueden venir de Declaraguate en vez
+ * de la cadena (ver Declaracion::remanenteIvaAnterior).
  */
 final class CalculoIvaPeriodoService
 {
@@ -48,19 +51,47 @@ final class CalculoIvaPeriodoService
                 signo: $documento->tipoDte->signo,
             ));
 
-        $remanenteAnterior = Declaracion::remanenteIvaAnterior($periodo);
-
-        $resultado = $this->calculadora->calcular($lineasDebito, $lineasCredito, $remanenteAnterior);
+        $resultado = $this->calculadora->calcular(
+            $lineasDebito,
+            $lineasCredito,
+            remanenteAnterior: Declaracion::remanenteIvaAnterior($periodo),
+            remanenteRetencionesAnterior: Declaracion::remanenteRetencionesIvaAnterior($periodo),
+            acreditamientoRetenciones: Declaracion::delPeriodo($periodo)?->acreditamiento_retenciones ?? '0.00',
+            retencionesPeriodo: RetencionIva::totalDelPeriodo($periodo),
+        );
 
         Declaracion::query()->updateOrCreate(
             ['tipo' => TipoDeclaracion::Iva, 'periodo' => $periodo],
             [
                 'montos' => $resultado->toArray(),
                 'remanente_credito' => $resultado->remanenteCredito,
+                'remanente_retenciones' => $resultado->saldoRetenciones,
             ]
         );
 
         return $resultado;
+    }
+
+    /**
+     * Guarda datos que el usuario copió de Declaraguate (remanentes,
+     * acreditamiento) en la declaración del período y recalcula la cadena
+     * desde ahí, todo en una transacción.
+     *
+     * @param  array<string, string|null>  $columnas  columna de `declaraciones` => valor
+     */
+    public function anotarEnPeriodo(string $periodo, array $columnas): void
+    {
+        DB::transaction(function () use ($periodo, $columnas) {
+            // Garantiza que exista la fila del período antes de anotarle nada.
+            $this->calcularPeriodo($periodo);
+
+            Declaracion::query()
+                ->where('tipo', TipoDeclaracion::Iva)
+                ->where('periodo', $periodo)
+                ->update($columnas);
+
+            $this->recalcularDesde($periodo);
+        });
     }
 
     /**

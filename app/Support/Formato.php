@@ -32,6 +32,15 @@ final class Formato
         return $signo.'Q'.$texto;
     }
 
+    /**
+     * Limpia un monto tal como se copia de Declaraguate ("1,858", "Q1,858.00")
+     * para validarlo como número. No valida: solo quita separadores y "Q".
+     */
+    public static function limpiarMontoIngresado(mixed $valor): string
+    {
+        return str_replace([',', ' ', 'Q'], '', (string) $valor);
+    }
+
     public static function periodoLabel(string $periodo): string
     {
         [$anio, $mes] = explode('-', $periodo);

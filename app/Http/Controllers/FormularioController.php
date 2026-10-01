@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Declaracion;
 use App\Models\Documento;
 use App\Models\Periodo;
 use App\Servicios\CalculoDesgloseSat2237PeriodoService;
@@ -29,6 +30,8 @@ class FormularioController extends Controller
         if ($periodo !== null) {
             $datos['desglose'] = (new CalculoDesgloseSat2237PeriodoService)->calcularPeriodo($periodo);
             $datos['resultadoIva'] = (new CalculoIvaPeriodoService)->calcularPeriodo($periodo);
+            $datos['declaracionIva'] = Declaracion::delPeriodo($periodo);
+            $datos['remanenteRetencionesCalculado'] = Declaracion::remanenteRetencionesIvaCalculadoAnterior($periodo);
             $datos['conteoDocumentos'] = (new ConteoDocumentosPeriodoService)->contarPeriodo($periodo);
         }
 

@@ -7,6 +7,7 @@ use App\Models\Contribuyente;
 use App\Models\Declaracion;
 use App\Models\Documento;
 use App\Models\Retencion;
+use App\Models\RetencionIva;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,7 @@ class ConfiguracionController extends Controller
         DB::transaction(function () use ($contribuyente) {
             Documento::query()->delete();
             Retencion::query()->delete();
+            RetencionIva::query()->delete();
             Declaracion::query()->delete();
             Cliente::query()->delete();
             $contribuyente->delete();

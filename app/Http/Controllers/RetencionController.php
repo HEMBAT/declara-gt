@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Declaracion;
 use App\Models\Documento;
 use App\Models\Periodo;
 use App\Models\Retencion;
+use App\Models\RetencionIva;
+use App\Servicios\CalculoIvaPeriodoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -25,12 +28,21 @@ class RetencionController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $retencionesIva = RetencionIva::query()
+            ->where('periodo', $periodo)
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('retenciones.index', [
             'periodosDisponibles' => $periodosDisponibles,
             'periodo' => $periodo,
             'periodoActual' => $periodo,
             'retenciones' => $retenciones,
             'totalRetenciones' => $retenciones->sum('monto_isr'),
+            'retencionesIva' => $retencionesIva,
+            'resultadoIva' => (new CalculoIvaPeriodoService)->calcularPeriodo($periodo),
+            'declaracionIva' => Declaracion::delPeriodo($periodo),
+            'remanenteRetencionesCalculado' => Declaracion::remanenteRetencionesIvaCalculadoAnterior($periodo),
         ]);
     }
 

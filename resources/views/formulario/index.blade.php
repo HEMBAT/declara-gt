@@ -99,6 +99,11 @@
             </div>
         </div>
 
+        <div class="panel" style="margin-bottom:18px;">
+            <div style="font-size:14.5px; font-weight:700; margin-bottom:14px;">Cuadro 7 — Retenciones de IVA</div>
+            @include('partials.retenciones-iva-cuadro7')
+        </div>
+
         @php
             $ivaAPagar = (float) $resultadoIva->ivaAPagar;
             $remanenteCredito = (float) $resultadoIva->remanenteCredito;
@@ -108,7 +113,7 @@
                 <div class="monto-final__etiqueta">{{ $ivaAPagar > 0 ? 'IVA a pagar' : 'Remanente de crédito para el siguiente período' }}</div>
                 <div class="monto-final__valor @if($ivaAPagar > 0) monto-final__valor--pendiente @endif mono">{{ \App\Support\Formato::moneda($ivaAPagar > 0 ? $resultadoIva->ivaAPagar : $resultadoIva->remanenteCredito) }}</div>
             </div>
-            <div class="monto-final__nota">Débito − crédito − remanente anterior.</div>
+            <div class="monto-final__nota">Débito − crédito − remanente anterior − retenciones de IVA.</div>
         </div>
 
         <div class="panel">

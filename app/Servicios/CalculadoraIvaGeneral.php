@@ -22,9 +22,18 @@ final class CalculadoraIvaGeneral
      * @param  iterable<LineaIva>  $lineasDebito  documentos emitidos del período
      * @param  iterable<LineaIva>  $lineasCredito  documentos recibidos del período con genera_credito=true
      * @param  string  $remanenteAnterior  remanente de crédito del período anterior, formato "0.00"
+     * @param  string  $remanenteRetencionesAnterior  retenciones de IVA no usadas en períodos anteriores
+     * @param  string  $acreditamientoRetenciones  parte de ese remanente que el SAT devolvió en cuenta bancaria
+     * @param  string  $retencionesPeriodo  constancias de retención de IVA recibidas en el período
      */
-    public function calcular(iterable $lineasDebito, iterable $lineasCredito, string $remanenteAnterior = '0.00'): ResultadoIva
-    {
+    public function calcular(
+        iterable $lineasDebito,
+        iterable $lineasCredito,
+        string $remanenteAnterior = '0.00',
+        string $remanenteRetencionesAnterior = '0.00',
+        string $acreditamientoRetenciones = '0.00',
+        string $retencionesPeriodo = '0.00',
+    ): ResultadoIva {
         $debitoCentavos = 0;
         foreach ($lineasDebito as $linea) {
             $debitoCentavos += self::aCentavos($linea->iva) * $linea->signo;
@@ -38,8 +47,18 @@ final class CalculadoraIvaGeneral
         $remanenteCentavos = self::aCentavos($remanenteAnterior);
         $resultadoCentavos = $debitoCentavos - $creditoCentavos - $remanenteCentavos;
 
-        $ivaAPagarCentavos = max(0, $resultadoCentavos);
+        $impuestoDeterminadoCentavos = max(0, $resultadoCentavos);
         $remanenteNuevoCentavos = max(0, -$resultadoCentavos);
+
+        // Cuadro 7 del SAT-2237: el remanente de retenciones, menos lo que el
+        // SAT haya devuelto, más las constancias del mes, se acredita contra
+        // el impuesto determinado. Lo que no se usa pasa al período siguiente.
+        $acreditamientoCentavos = self::aCentavos($acreditamientoRetenciones);
+        $remanenteRetencionesCentavos = max(0, self::aCentavos($remanenteRetencionesAnterior) - $acreditamientoCentavos);
+        $retencionesDisponiblesCentavos = $remanenteRetencionesCentavos + self::aCentavos($retencionesPeriodo);
+        $retencionesAplicadasCentavos = min($retencionesDisponiblesCentavos, $impuestoDeterminadoCentavos);
+
+        $ivaAPagarCentavos = $impuestoDeterminadoCentavos - $retencionesAplicadasCentavos;
 
         return new ResultadoIva(
             debito: self::aDecimal($debitoCentavos),
@@ -48,6 +67,13 @@ final class CalculadoraIvaGeneral
             resultado: self::aDecimal($resultadoCentavos),
             ivaAPagar: self::aDecimal($ivaAPagarCentavos),
             remanenteCredito: self::aDecimal($remanenteNuevoCentavos),
+            impuestoDeterminado: self::aDecimal($impuestoDeterminadoCentavos),
+            remanenteRetencionesAnterior: self::aDecimal(self::aCentavos($remanenteRetencionesAnterior)),
+            acreditamientoRetenciones: self::aDecimal($acreditamientoCentavos),
+            remanenteRetenciones: self::aDecimal($remanenteRetencionesCentavos),
+            retencionesPeriodo: self::aDecimal(self::aCentavos($retencionesPeriodo)),
+            retencionesAplicadas: self::aDecimal($retencionesAplicadasCentavos),
+            saldoRetenciones: self::aDecimal($retencionesDisponiblesCentavos - $retencionesAplicadasCentavos),
         );
     }
 
