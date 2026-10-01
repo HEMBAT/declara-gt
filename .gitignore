@@ -8,7 +8,7 @@
 .phpactor.json
 .phpunit.result.cache
 
-# Herramientas de IA / asistentes: configuración y contexto solo-local
+# Configuración local de herramientas de desarrollo
 /.claude
 /.codex
 /.cursor/
