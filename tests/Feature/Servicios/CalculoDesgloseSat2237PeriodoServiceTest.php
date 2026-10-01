@@ -185,3 +185,12 @@ it('no suma las notas de abono a ninguna base del SAT-2237', function () {
         ->and($resultado->baseCreditoTotal)->toBe('0.00')
         ->and($resultado->baseNoDeducible)->toBe('0.00');
 });
+
+it('usa el mismo remanente según Declaraguate que el cálculo del IVA', function () {
+    Declaracion::factory()->create(['tipo' => 'IVA', 'periodo' => '2026-04', 'remanente_credito' => '600.00']);
+    Declaracion::factory()->create(['tipo' => 'IVA', 'periodo' => '2026-05', 'remanente_anterior_sat' => '750.00']);
+
+    $resultado = (new CalculoDesgloseSat2237PeriodoService)->calcularPeriodo('2026-05');
+
+    expect($resultado->remanenteAnterior)->toBe('750.00');
+});

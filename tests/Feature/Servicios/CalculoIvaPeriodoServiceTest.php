@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Declaracion;
 use App\Models\Documento;
 use App\Models\TipoDte;
 use App\Servicios\CalculoIvaPeriodoService;
@@ -133,4 +134,47 @@ it('excluye siempre las FCAP del crédito fiscal aunque genera_credito sea true'
     $resultado = (new CalculoIvaPeriodoService)->calcularPeriodo('2026-05');
 
     expect($resultado->credito)->toBe('0.00');
+});
+
+it('usa el remanente según Declaraguate en vez del encadenado cuando está registrado', function () {
+    $factura = TipoDte::factory()->factura()->create();
+
+    Declaracion::factory()->create(['tipo' => 'IVA', 'periodo' => '2026-06', 'remanente_credito' => '627.06']);
+    Declaracion::factory()->create(['tipo' => 'IVA', 'periodo' => '2026-07', 'remanente_anterior_sat' => '1858.00']);
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $factura->id,
+        'periodo' => '2026-07',
+        'direccion' => 'emitida',
+        'iva' => '642.86',
+    ]);
+
+    $resultado = (new CalculoIvaPeriodoService)->calcularPeriodo('2026-07');
+
+    expect($resultado->remanenteAnterior)->toBe('1858.00')
+        ->and($resultado->remanenteCredito)->toBe('1215.14')
+        // El recálculo nunca pisa lo que el usuario copió de Declaraguate.
+        ->and(Declaracion::where('periodo', '2026-07')->first()->remanente_anterior_sat)->toBe('1858.00');
+});
+
+it('recalcularDesde propaga el remanente a los períodos posteriores ya calculados', function () {
+    $factura = TipoDte::factory()->factura()->create();
+    $servicio = new CalculoIvaPeriodoService;
+
+    foreach (['2026-07', '2026-08'] as $periodo) {
+        Documento::factory()->create([
+            'tipo_dte_id' => $factura->id,
+            'periodo' => $periodo,
+            'direccion' => 'emitida',
+            'iva' => '100.00',
+        ]);
+        $servicio->calcularPeriodo($periodo);
+    }
+
+    Declaracion::where('periodo', '2026-07')->update(['remanente_anterior_sat' => '1000.00']);
+    $servicio->recalcularDesde('2026-07');
+
+    // Julio: 1000 − 100 = 900; agosto arranca con esos 900: 900 − 100 = 800.
+    expect(Declaracion::where('periodo', '2026-07')->first()->remanente_credito)->toBe('900.00')
+        ->and(Declaracion::where('periodo', '2026-08')->first()->remanente_credito)->toBe('800.00');
 });

@@ -2,13 +2,11 @@
 
 namespace App\Servicios;
 
-use App\Enums\TipoDeclaracion;
 use App\Models\Declaracion;
 use App\Models\Documento;
 use App\Models\TipoDte;
 use App\Servicios\Dto\LineaSat2237;
 use App\Servicios\Dto\ResultadoDesgloseSat2237;
-use Carbon\Carbon;
 
 /**
  * Orquesta el desglose por casilla del SAT-2237 de un período: resuelve las
@@ -54,16 +52,7 @@ final class CalculoDesgloseSat2237PeriodoService
                 esPequenoContribuyente: TipoDte::esPequenoContribuyente($documento->tipoDte->codigo),
             ));
 
-        $periodoAnterior = Carbon::createFromFormat('Y-m-d', $periodo.'-01')
-            ->subMonthNoOverflow()
-            ->format('Y-m');
-
-        $declaracionAnterior = Declaracion::query()
-            ->where('tipo', TipoDeclaracion::Iva)
-            ->where('periodo', $periodoAnterior)
-            ->first();
-
-        $remanenteAnterior = (string) ($declaracionAnterior?->remanente_credito ?? '0.00');
+        $remanenteAnterior = Declaracion::remanenteIvaAnterior($periodo);
 
         return $this->calculadora->calcular($lineasEmitidas, $lineasRecibidas, $remanenteAnterior);
     }

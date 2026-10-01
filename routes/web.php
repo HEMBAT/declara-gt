@@ -17,6 +17,9 @@ Route::post('/periodos/{periodo}/calculado', [DashboardController::class, 'marca
 Route::post('/periodos/{periodo}/declarado', [DashboardController::class, 'marcarDeclarado'])
     ->where('periodo', '\d{4}-\d{2}')
     ->name('dashboard.declarar');
+Route::post('/periodos/{periodo}/remanente-iva', [DashboardController::class, 'guardarRemanenteSat'])
+    ->where('periodo', '\d{4}-\d{2}')
+    ->name('dashboard.remanenteIva');
 
 Route::get('/configuracion', [ConfiguracionController::class, 'editar'])->name('configuracion.editar');
 Route::post('/configuracion', [ConfiguracionController::class, 'guardar'])->name('configuracion.guardar');

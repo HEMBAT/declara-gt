@@ -129,7 +129,23 @@
                 <div class="tarjeta">
                     <div class="tarjeta__etiqueta">Remanente del período anterior</div>
                     <div class="tarjeta__valor mono">{{ \App\Support\Formato::moneda($resultadoIva->remanenteAnterior) }}</div>
-                    <div class="tarjeta__nota">Crédito acumulado que no se usó antes</div>
+                    @if($remanenteSegunSat !== null)
+                        <div class="tarjeta__nota">Según Declaraguate · el programa calculó {{ \App\Support\Formato::moneda($remanenteCalculadoAnterior) }}</div>
+                    @else
+                        <div class="tarjeta__nota">Crédito acumulado que no se usó antes</div>
+                    @endif
+                    <form method="POST" action="{{ route('dashboard.remanenteIva', $periodoSeleccionado) }}" style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(10,10,10,0.06);">
+                        @csrf
+                        <label class="campo__etiqueta" for="remanente_anterior_sat">Según Declaraguate</label>
+                        <div style="display:flex; gap:6px; margin-top:4px;">
+                            <input type="text" inputmode="decimal" id="remanente_anterior_sat" name="remanente_anterior_sat" class="mono" value="{{ old('remanente_anterior_sat', $remanenteSegunSat) }}" placeholder="Ej. 1858" style="flex:1; min-width:0; padding:6px 8px; border:1px solid rgba(10,10,10,0.15); border-radius:6px;">
+                            <button type="submit" class="btn btn--contorno">Guardar</button>
+                        </div>
+                        @error('remanente_anterior_sat')
+                            <div class="tarjeta__nota" style="color:var(--alerta);">{{ $message }}</div>
+                        @enderror
+                        <div class="tarjeta__nota">Si no coincide con el programa, copia aquí el de Declaraguate. Déjalo vacío para usar el calculado.</div>
+                    </form>
                 </div>
             </div>
 

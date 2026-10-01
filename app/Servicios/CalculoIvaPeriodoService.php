@@ -7,7 +7,6 @@ use App\Models\Declaracion;
 use App\Models\Documento;
 use App\Servicios\Dto\LineaIva;
 use App\Servicios\Dto\ResultadoIva;
-use Carbon\Carbon;
 
 /**
  * Orquesta el cálculo del IVA general de un período: resuelve las líneas de
@@ -19,6 +18,9 @@ use Carbon\Carbon;
  * es la entrada del siguiente (§10 del brief), así que cada cálculo guarda
  * su remanente para que el período siguiente pueda leerlo. No es una
  * caché — se recalcula igual cada vez, solo se guarda el remanente.
+ *
+ * El remanente de entrada puede venir de Declaraguate en vez de la cadena
+ * (ver Declaracion::remanenteIvaAnterior).
  */
 final class CalculoIvaPeriodoService
 {
@@ -46,18 +48,9 @@ final class CalculoIvaPeriodoService
                 signo: $documento->tipoDte->signo,
             ));
 
-        $periodoAnterior = Carbon::createFromFormat('Y-m-d', $periodo.'-01')
-            ->subMonthNoOverflow()
-            ->format('Y-m');
+        $remanenteAnterior = Declaracion::remanenteIvaAnterior($periodo);
 
-        $declaracionAnterior = Declaracion::query()
-            ->where('tipo', TipoDeclaracion::Iva)
-            ->where('periodo', $periodoAnterior)
-            ->first();
-
-        $remanenteAnterior = $declaracionAnterior?->remanente_credito ?? '0.00';
-
-        $resultado = $this->calculadora->calcular($lineasDebito, $lineasCredito, (string) $remanenteAnterior);
+        $resultado = $this->calculadora->calcular($lineasDebito, $lineasCredito, $remanenteAnterior);
 
         Declaracion::query()->updateOrCreate(
             ['tipo' => TipoDeclaracion::Iva, 'periodo' => $periodo],
@@ -68,5 +61,25 @@ final class CalculoIvaPeriodoService
         );
 
         return $resultado;
+    }
+
+    /**
+     * Recalcula el período y, en orden, todos los posteriores ya calculados,
+     * para que un cambio en el remanente de uno se propague por la cadena en
+     * vez de quedar obsoleto hasta que el usuario abra cada mes.
+     */
+    public function recalcularDesde(string $periodo): void
+    {
+        $periodosPosteriores = Declaracion::query()
+            ->where('tipo', TipoDeclaracion::Iva)
+            ->where('periodo', '>', $periodo)
+            ->orderBy('periodo')
+            ->pluck('periodo');
+
+        $this->calcularPeriodo($periodo);
+
+        foreach ($periodosPosteriores as $periodoPosterior) {
+            $this->calcularPeriodo($periodoPosterior);
+        }
     }
 }
