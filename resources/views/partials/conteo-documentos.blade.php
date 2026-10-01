@@ -13,6 +13,9 @@
             <div class="tarjeta">
                 <div class="tarjeta__etiqueta">{{ $etiqueta }}</div>
                 <div class="tarjeta__valor mono">{{ $conteoDocumentos[$direccion]['total'] }}</div>
+                @if($conteoDocumentos[$direccion]['anulados'] > 0)
+                    <div class="tarjeta__nota">{{ $conteoDocumentos[$direccion]['anulados'] }} {{ $conteoDocumentos[$direccion]['anulados'] === 1 ? 'anulado' : 'anulados' }} — no entran al cálculo</div>
+                @endif
                 @if($conteoDocumentos[$direccion]['porTipo'] !== [])
                     <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(10,10,10,0.06);">
                         @foreach($conteoDocumentos[$direccion]['porTipo'] as $codigo => $cantidad)

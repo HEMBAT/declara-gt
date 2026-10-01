@@ -97,7 +97,22 @@ it('cuenta los documentos del período incluyendo anulados y facturas de Pequeñ
 
     $respuesta->assertOk();
     $respuesta->assertSee('Cantidad de documentos del período', false);
-    $respuesta->assertSeeInOrder(['Emitidos', '>1<', 'Recibidos', '>5<'], false); // 4 FACT (una anulada) + 1 FPEQ
+    $respuesta->assertSeeInOrder(['Emitidos', '>1<', 'Recibidos', '>5<', '1 anulado — no entran al cálculo'], false); // 4 FACT (una anulada) + 1 FPEQ
+});
+
+it('no menciona anulados cuando el período no tiene ninguno', function () {
+    $factura = TipoDte::factory()->factura()->create();
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $factura->id,
+        'periodo' => '2026-05',
+        'direccion' => 'emitida',
+    ]);
+
+    $respuesta = $this->get(route('formulario.index', ['periodo' => '2026-05']));
+
+    $respuesta->assertOk();
+    $respuesta->assertDontSee('no entran al cálculo', false);
 });
 
 it('muestra un estado vacío cuando no hay ningún período disponible', function () {
