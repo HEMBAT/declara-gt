@@ -401,3 +401,72 @@ it('no bloquea la pregunta de crédito fiscal cuando un proveedor nuevo mezcla F
     expect($candidato->creditoBloqueado)->toBeFalse()
         ->and($candidato->generaCreditoSugerido)->toBeTrue();
 });
+
+it('fuerza genera_credito=false y bloquea la pregunta de crédito en una FCAP recibida', function () {
+    contribuyenteDePrueba();
+
+    $filaFcap = filaSatDePrueba([
+        'Tipo de DTE (nombre)' => 'FCAP',
+        'NIT del emisor' => '8888888-8',
+        'Nombre completo del emisor' => 'Vendedor Pequeño Contribuyente',
+        'ID del receptor' => NIT_CONTRIBUYENTE_PRUEBA,
+        'Nombre completo del receptor' => 'Empresa Ejemplo, S.A.',
+    ]);
+
+    $draft = (new ImportadorDocumentos)->previsualizar(construirArchivoSat([$filaFcap]));
+    $candidato = collect($draft->clientesPorClasificar)->firstWhere('nit', '8888888-8');
+
+    (new ImportadorDocumentos)->confirmar($draft, clasificacionesCredito: ['8888888-8' => true]);
+
+    expect($candidato->creditoBloqueado)->toBeTrue()
+        ->and(Documento::first()->genera_credito)->toBeFalse()
+        ->and(Cliente::where('nit', '8888888-8')->first()->genera_credito_default)->toBeFalse();
+});
+
+it('crea un tipo_dte del catálogo con sus datos aunque la base no esté sembrada', function () {
+    contribuyenteDePrueba();
+
+    (new ImportadorDocumentos)->importar(construirArchivoSat([
+        filaSatDePrueba(['Tipo de DTE (nombre)' => 'FCAP']),
+    ]));
+
+    $tipoDte = TipoDte::where('codigo', 'FCAP')->first();
+
+    expect($tipoDte->nombre)->toBe('Factura Cambiaria Pequeño Contribuyente')
+        ->and($tipoDte->revisar)->toBeFalse();
+});
+
+it('guarda las notas de abono, las cuenta como ignoradas y avisa una sola vez por tipo', function () {
+    contribuyenteDePrueba();
+
+    $resultado = (new ImportadorDocumentos)->importar(construirArchivoSat([
+        filaSatDePrueba(['Número de Autorización' => 'AAAAAAAA-0000-0000-0000-000000000001', 'Tipo de DTE (nombre)' => 'NABN', 'IVA (monto de este impuesto)' => 0]),
+        filaSatDePrueba(['Número de Autorización' => 'AAAAAAAA-0000-0000-0000-000000000002', 'Tipo de DTE (nombre)' => 'NABN', 'IVA (monto de este impuesto)' => 0]),
+    ]));
+
+    $notasDeAbono = array_values(array_filter($resultado->advertencias, fn (string $a) => str_contains($a, 'notas de abono')));
+
+    expect(Documento::count())->toBe(2)
+        ->and($resultado->ignorados)->toBe(2)
+        ->and($notasDeAbono)->toHaveCount(1)
+        ->and($notasDeAbono[0])->toStartWith('2 notas de abono (NABN)')
+        ->and(Documento::query()->paraCalculoIsr('2026-05')->count())->toBe(0);
+});
+
+it('avisa cuando el archivo trae un tipo de DTE desconocido', function () {
+    contribuyenteDePrueba();
+
+    $draft = (new ImportadorDocumentos)->previsualizar(construirArchivoSat([
+        filaSatDePrueba(['Tipo de DTE (nombre)' => 'ZZZZ']),
+    ]));
+
+    expect($draft->advertencias)->toContain('Tipo de DTE desconocido «ZZZZ» en 1 fila: se tomó como factura y sí suma al cálculo. Revísalo antes de declarar.');
+});
+
+it('no agrega avisos de tipo de DTE para facturas normales', function () {
+    contribuyenteDePrueba();
+
+    $draft = (new ImportadorDocumentos)->previsualizar(construirArchivoSat([filaSatDePrueba()]));
+
+    expect($draft->advertencias)->toBe([]);
+});

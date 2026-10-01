@@ -117,3 +117,32 @@ it('retorna todo en cero cuando el período no tiene documentos', function () {
     expect($resultado->baseGravable)->toBe('0.00')
         ->and($resultado->isrAPagar)->toBe('0.00');
 });
+
+it('no suma las notas de abono emitidas a la base gravable', function () {
+    sembrarTramosIsr(vigenteDesde: '2013-01-01', tramo1Tasa: '0.0500', tramo2Tasa: '0.0700');
+    $factura = TipoDte::factory()->factura()->create();
+    $notaDeAbono = TipoDte::factory()->notaDeAbono()->create();
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $factura->id,
+        'periodo' => '2026-05',
+        'fecha_emision' => '2026-05-10',
+        'direccion' => 'emitida',
+        'base_sin_iva' => '10000.00',
+    ]);
+
+    // Se emite sin IVA: si sumara como factura, la base subiría a Q15,000.00.
+    Documento::factory()->create([
+        'tipo_dte_id' => $notaDeAbono->id,
+        'periodo' => '2026-05',
+        'fecha_emision' => '2026-05-20',
+        'direccion' => 'emitida',
+        'iva' => '0.00',
+        'base_sin_iva' => '5000.00',
+    ]);
+
+    $resultado = (new CalculoIsrPeriodoService)->calcularPeriodo('2026-05');
+
+    expect($resultado->baseGravable)->toBe('10000.00')
+        ->and($resultado->isrDeterminado)->toBe('500.00');
+});

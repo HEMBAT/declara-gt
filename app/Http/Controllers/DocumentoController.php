@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Documento;
 use App\Models\Periodo;
+use App\Models\TipoDte;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -59,8 +60,8 @@ class DocumentoController extends Controller
             return response()->json(['ok' => false, 'error' => 'Solo los documentos recibidos tienen crédito fiscal.'], 422);
         }
 
-        if ($documento->tipoDte->codigo === 'FPEQ') {
-            return response()->json(['ok' => false, 'error' => 'Las facturas de Pequeño Contribuyente (FPEQ) nunca generan crédito fiscal.'], 422);
+        if (TipoDte::esPequenoContribuyente($documento->tipoDte->codigo)) {
+            return response()->json(['ok' => false, 'error' => 'Las facturas de Pequeño Contribuyente (FPEQ/FCAP) nunca generan crédito fiscal.'], 422);
         }
 
         $datos = $request->validate([

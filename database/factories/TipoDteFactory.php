@@ -39,4 +39,14 @@ class TipoDteFactory extends Factory
     {
         return $this->state(fn () => ['codigo' => 'FPEQ', 'nombre' => 'Factura Pequeño Contribuyente', 'signo' => 1]);
     }
+
+    public function cambiariaPequenoContribuyente(): static
+    {
+        return $this->state(fn () => ['codigo' => 'FCAP', 'nombre' => 'Factura Cambiaria Pequeño Contribuyente', 'signo' => 1]);
+    }
+
+    public function notaDeAbono(): static
+    {
+        return $this->state(fn () => ['codigo' => 'NABN', 'nombre' => 'Nota de Abono', 'signo' => 1, 'revisar' => true]);
+    }
 }

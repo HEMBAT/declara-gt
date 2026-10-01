@@ -117,7 +117,7 @@
                         <div class="fila-clasificar" style="padding-top:0; border-top:none;">
                             <div style="font-size:12.5px; color:rgba(10,10,10,0.6);">¿Genera crédito fiscal?</div>
                             @if($candidato->creditoBloqueado)
-                                <div style="font-size:12px; color:rgba(10,10,10,0.4);" title="Todas sus facturas en este archivo son FPEQ (Pequeño Contribuyente) — nunca generan crédito fiscal">No genera crédito (FPEQ)</div>
+                                <div style="font-size:12px; color:rgba(10,10,10,0.4);" title="Todas sus facturas en este archivo son de Pequeño Contribuyente (FPEQ/FCAP) — nunca generan crédito fiscal">No genera crédito (Pequeño Contribuyente)</div>
                             @else
                                 <div class="opciones-tipo">
                                     @foreach(['1' => 'Sí', '0' => 'No'] as $valor => $etiqueta)
@@ -149,7 +149,7 @@
             <div style="font-size:13.5px; color:rgba(10,10,10,0.55);">
                 {{ count($draft->clientesPorClasificar) }} clientes nuevos agregados a tu directorio.
                 @if($resultado->ignorados > 0)
-                    {{ $resultado->ignorados }} documentos no cuentan para el cálculo del ISR (anulados o en otra moneda).
+                    {{ $resultado->ignorados }} documentos no entran a los cálculos (anulados, en otra moneda o notas de abono).
                 @endif
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">

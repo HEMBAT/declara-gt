@@ -13,9 +13,9 @@ final readonly class ClientePorClasificar
         /** Sugerencia para "¿genera crédito fiscal?", solo relevante si esProveedor. */
         public bool $generaCreditoSugerido = true,
         /**
-         * true si TODAS las filas recibidas de este NIT en el archivo son FPEQ
+         * true si TODAS las filas recibidas de este NIT en el archivo son FPEQ o FCAP
          * (Pequeño Contribuyente) — en ese caso la pregunta no se ofrece como
-         * elección, queda fija en "No" (§10 del brief: FPEQ nunca genera
+         * elección, queda fija en "No" (§10 del brief: Pequeño Contribuyente nunca genera
          * crédito fiscal).
          */
         public bool $creditoBloqueado = false,

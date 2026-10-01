@@ -168,7 +168,7 @@ it('bloquea la pregunta de crédito fiscal en la pantalla de clasificar cuando e
     $pantalla = $this->get(route('importar.clasificar'));
     $html = $pantalla->getContent();
 
-    expect($html)->toContain('No genera crédito (FPEQ)')
+    expect($html)->toContain('No genera crédito (Pequeño Contribuyente)')
         ->not->toContain('name="credito[3333333-3]"');
 });
 

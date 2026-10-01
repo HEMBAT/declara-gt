@@ -10,7 +10,7 @@ final readonly class LineaSat2237
      * @param  int  $signo  +1 o -1, según el tipo_dte del documento
      * @param  ?string  $tipo  'bien'|'servicio'|'combustible'|null
      * @param  ?bool  $generaCredito  null para emitidas (no aplica); true/false para recibidas
-     * @param  bool  $esPequenoContribuyente  true si el DTE es FPEQ; el formulario le
+     * @param  bool  $esPequenoContribuyente  true si el DTE es FPEQ o FCAP; el formulario le
      *                                        da una casilla de base propia, aparte del
      *                                        resto de compras sin derecho a crédito
      */

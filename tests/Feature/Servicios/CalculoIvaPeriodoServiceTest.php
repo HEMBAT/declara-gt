@@ -118,3 +118,19 @@ it('retorna todo en cero cuando el período no tiene documentos ni remanente pre
         ->and($resultado->credito)->toBe('0.00')
         ->and($resultado->ivaAPagar)->toBe('0.00');
 });
+
+it('excluye siempre las FCAP del crédito fiscal aunque genera_credito sea true', function () {
+    $fcap = TipoDte::factory()->cambiariaPequenoContribuyente()->create();
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $fcap->id,
+        'periodo' => '2026-05',
+        'direccion' => 'recibida',
+        'iva' => '500.00',
+        'genera_credito' => true,
+    ]);
+
+    $resultado = (new CalculoIvaPeriodoService)->calcularPeriodo('2026-05');
+
+    expect($resultado->credito)->toBe('0.00');
+});

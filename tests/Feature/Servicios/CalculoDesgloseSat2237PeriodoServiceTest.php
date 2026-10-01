@@ -137,3 +137,51 @@ it('retorna todo en cero cuando el período no tiene documentos', function () {
         ->and($resultado->baseNoDeducible)->toBe('0.00')
         ->and($resultado->remanenteAnterior)->toBe('0.00');
 });
+
+it('manda las FCAP a la casilla de compras a Pequeño Contribuyente', function () {
+    $fcap = TipoDte::factory()->cambiariaPequenoContribuyente()->create();
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $fcap->id,
+        'periodo' => '2026-05',
+        'direccion' => 'recibida',
+        'iva' => '0.00',
+        'base_sin_iva' => '300.00',
+        'genera_credito' => false,
+    ]);
+
+    $resultado = (new CalculoDesgloseSat2237PeriodoService)->calcularPeriodo('2026-05');
+
+    expect($resultado->basePequenosContribuyentes)->toBe('300.00')
+        ->and($resultado->baseNoDeducible)->toBe('0.00')
+        ->and($resultado->creditoTotal)->toBe('0.00');
+});
+
+it('no suma las notas de abono a ninguna base del SAT-2237', function () {
+    $notaDeAbono = TipoDte::factory()->notaDeAbono()->create();
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $notaDeAbono->id,
+        'periodo' => '2026-05',
+        'direccion' => 'emitida',
+        'tipo' => 'servicio',
+        'iva' => '0.00',
+        'base_sin_iva' => '700.00',
+    ]);
+
+    Documento::factory()->create([
+        'tipo_dte_id' => $notaDeAbono->id,
+        'periodo' => '2026-05',
+        'direccion' => 'recibida',
+        'tipo' => 'bien',
+        'iva' => '0.00',
+        'base_sin_iva' => '900.00',
+        'genera_credito' => true,
+    ]);
+
+    $resultado = (new CalculoDesgloseSat2237PeriodoService)->calcularPeriodo('2026-05');
+
+    expect($resultado->baseDebitoTotal)->toBe('0.00')
+        ->and($resultado->baseCreditoTotal)->toBe('0.00')
+        ->and($resultado->baseNoDeducible)->toBe('0.00');
+});

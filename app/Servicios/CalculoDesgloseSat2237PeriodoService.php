@@ -5,6 +5,7 @@ namespace App\Servicios;
 use App\Enums\TipoDeclaracion;
 use App\Models\Declaracion;
 use App\Models\Documento;
+use App\Models\TipoDte;
 use App\Servicios\Dto\LineaSat2237;
 use App\Servicios\Dto\ResultadoDesgloseSat2237;
 use Carbon\Carbon;
@@ -50,7 +51,7 @@ final class CalculoDesgloseSat2237PeriodoService
                 signo: $documento->tipoDte->signo,
                 tipo: $documento->tipo?->value,
                 generaCredito: $documento->genera_credito,
-                esPequenoContribuyente: $documento->tipoDte->codigo === 'FPEQ',
+                esPequenoContribuyente: TipoDte::esPequenoContribuyente($documento->tipoDte->codigo),
             ));
 
         $periodoAnterior = Carbon::createFromFormat('Y-m-d', $periodo.'-01')

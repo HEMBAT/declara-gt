@@ -84,8 +84,9 @@ final class ImportadorDocumentos
         $sugerenciaPorNit = [];
         $nombrePorNit = [];
         $proveedorPorNit = [];
-        $soloFpeqPorNit = [];
+        $soloPequenoContribuyentePorNit = [];
         $soloCombustiblePorNit = [];
+        $filasPorTipoDte = [];
 
         foreach ($filasHoja as $numeroFila => $fila) {
             if ($numeroFila === 1 || $this->filaVacia($fila)) {
@@ -105,6 +106,8 @@ final class ImportadorDocumentos
                 $advertencias[] = "Fila {$numeroFila}: moneda {$filaImportada->moneda} distinta de GTQ, se excluye del cálculo.";
             }
 
+            $filasPorTipoDte[$filaImportada->tipoDteCodigo] = ($filasPorTipoDte[$filaImportada->tipoDteCodigo] ?? 0) + 1;
+
             if ($filaImportada->tipoSugerido === 'combustible') {
                 $sugerenciaPorNit[$filaImportada->nitContraparte] = 'combustible';
             }
@@ -115,14 +118,16 @@ final class ImportadorDocumentos
                 && ((float) $filaImportada->idp) > 0;
             if ($filaImportada->direccion === 'recibida') {
                 $proveedorPorNit[$filaImportada->nitContraparte] = true;
-                // true mientras todas las filas recibidas vistas de este NIT sean FPEQ.
-                $soloFpeqPorNit[$filaImportada->nitContraparte] =
-                    ($soloFpeqPorNit[$filaImportada->nitContraparte] ?? true)
-                    && $filaImportada->tipoDteCodigo === 'FPEQ';
+                // true mientras todas las filas recibidas vistas de este NIT sean de Pequeño Contribuyente.
+                $soloPequenoContribuyentePorNit[$filaImportada->nitContraparte] =
+                    ($soloPequenoContribuyentePorNit[$filaImportada->nitContraparte] ?? true)
+                    && TipoDte::esPequenoContribuyente($filaImportada->tipoDteCodigo);
             }
 
             $filas[] = $filaImportada;
         }
+
+        array_push($advertencias, ...$this->advertenciasPorTipoDte($filasPorTipoDte));
 
         $nitsVistos = array_values(array_unique(array_map(fn (FilaDocumentoImportado $f) => $f->nitContraparte, $filas)));
         $nitsExistentes = $nitsVistos === []
@@ -135,7 +140,7 @@ final class ImportadorDocumentos
                 continue;
             }
             $esProveedor = $proveedorPorNit[$nit] ?? false;
-            $creditoBloqueado = $esProveedor && ($soloFpeqPorNit[$nit] ?? false);
+            $creditoBloqueado = $esProveedor && ($soloPequenoContribuyentePorNit[$nit] ?? false);
             $tipoBloqueado = $soloCombustiblePorNit[$nit] ?? false;
 
             $clientesPorClasificar[] = new ClientePorClasificar(
@@ -169,7 +174,7 @@ final class ImportadorDocumentos
                         'tipo_default' => $candidato->tipoBloqueado
                             ? 'combustible'
                             : ($clasificaciones[$candidato->nit] ?? $candidato->tipoSugerido ?? 'bien'),
-                        // creditoBloqueado (todas sus filas de este archivo son FPEQ) manda siempre
+                        // creditoBloqueado (todas sus filas de este archivo son de Pequeño Contribuyente) manda siempre
                         // sobre lo que venga en la petición: no es una elección del usuario.
                         'genera_credito_default' => $candidato->creditoBloqueado
                             ? false
@@ -185,7 +190,7 @@ final class ImportadorDocumentos
             foreach ($draft->filas as $fila) {
                 $tipoDte = TipoDte::query()->firstOrCreate(
                     ['codigo' => $fila->tipoDteCodigo],
-                    ['nombre' => $fila->tipoDteCodigo, 'signo' => 1, 'revisar' => true]
+                    TipoDte::atributosParaCodigo($fila->tipoDteCodigo)
                 );
 
                 $cliente = Cliente::query()->firstOrCreate(
@@ -210,10 +215,10 @@ final class ImportadorDocumentos
                         // Un documento con IDP siempre es combustible, sin importar el default
                         // del cliente (que puede tener facturas mixtas de otros períodos/tipos).
                         'tipo' => ((float) $fila->idp) > 0 ? 'combustible' : $cliente->tipo_default,
-                        // Las FPEQ nunca generan crédito fiscal (régimen de Pequeño Contribuyente),
+                        // Las facturas de Pequeño Contribuyente (FPEQ/FCAP) nunca generan crédito fiscal,
                         // sin importar el default del proveedor ni lo que haya elegido el usuario.
                         'genera_credito' => $fila->direccion === 'recibida'
-                            ? ($fila->tipoDteCodigo === 'FPEQ' ? false : $cliente->genera_credito_default)
+                            ? (TipoDte::esPequenoContribuyente($fila->tipoDteCodigo) ? false : $cliente->genera_credito_default)
                             : null,
                         'moneda' => $fila->moneda,
                         'estado' => $fila->estado,
@@ -223,13 +228,40 @@ final class ImportadorDocumentos
 
                 $documento->wasRecentlyCreated ? $nuevos++ : $actualizados++;
 
-                if ($fila->moneda !== 'GTQ' || $fila->anulado) {
+                if ($fila->moneda !== 'GTQ' || $fila->anulado || TipoDte::quedaFueraDeCalculo($fila->tipoDteCodigo)) {
                     $ignorados++;
                 }
             }
 
             return new ResultadoImportacion($nuevos, $actualizados, $ignorados, $draft->advertencias);
         });
+    }
+
+    /**
+     * Un aviso por tipo de DTE que no se calcula como una factura normal, en
+     * vez de uno por fila: un archivo puede traer decenas del mismo tipo.
+     *
+     * @param  array<string, int>  $filasPorTipoDte  código de DTE => cantidad de filas
+     * @return list<string>
+     */
+    private function advertenciasPorTipoDte(array $filasPorTipoDte): array
+    {
+        $advertencias = [];
+
+        foreach ($filasPorTipoDte as $codigo => $cantidad) {
+            $codigo = (string) $codigo;
+
+            if (TipoDte::quedaFueraDeCalculo($codigo)) {
+                $advertencias[] = $cantidad === 1
+                    ? "1 nota de abono ({$codigo}): se guarda, pero no entra a ningún cálculo porque se emite sin IVA. Confirma con tu contador si afecta tu ISR."
+                    : "{$cantidad} notas de abono ({$codigo}): se guardan, pero no entran a ningún cálculo porque se emiten sin IVA. Confirma con tu contador si afectan tu ISR.";
+            } elseif (! TipoDte::esConocido($codigo)) {
+                $filas = $cantidad === 1 ? '1 fila' : "{$cantidad} filas";
+                $advertencias[] = "Tipo de DTE desconocido «{$codigo}» en {$filas}: se tomó como factura y sí suma al cálculo. Revísalo antes de declarar.";
+            }
+        }
+
+        return $advertencias;
     }
 
     private function validarArchivo(UploadedFile $archivo): void

@@ -75,8 +75,8 @@
                                 <td class="mono num" style="color:{{ $colorMonto }};">{{ \App\Support\Formato::moneda((float) $documento->base_sin_iva * $signo) }}</td>
                                 <td>
                                     @if($documento->direccion->value === 'recibida')
-                                        @if($documento->tipoDte->codigo === 'FPEQ')
-                                            <span style="color:rgba(10,10,10,0.4); font-size:12px;" title="Régimen de Pequeño Contribuyente — nunca genera crédito fiscal">No genera crédito (FPEQ)</span>
+                                        @if(\App\Models\TipoDte::esPequenoContribuyente($documento->tipoDte->codigo))
+                                            <span style="color:rgba(10,10,10,0.4); font-size:12px;" title="Régimen de Pequeño Contribuyente — nunca genera crédito fiscal">No genera crédito ({{ $documento->tipoDte->codigo }})</span>
                                         @else
                                             <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;">
                                                 <input type="checkbox" data-credito-documento="{{ route('documentos.actualizarCredito', $documento) }}" @checked($documento->genera_credito)>
